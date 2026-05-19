@@ -39,23 +39,23 @@ VExpander (VariableExpander
 vvMap [
 (vvPair
 variable "HDLDir"
-value "C:\\dev\\CAr\\car-heirv\\Prefs\\..\\HEIRV32\\MultiCycle\\hdl"
+value "C:\\Users\\raphael.gonin\\Documents\\Goat\\Prefs\\..\\HEIRV32\\MultiCycle\\hdl"
 )
 (vvPair
 variable "HDSDir"
-value "C:\\dev\\CAr\\car-heirv\\Prefs\\..\\HEIRV32\\MultiCycle\\hds"
+value "C:\\Users\\raphael.gonin\\Documents\\Goat\\Prefs\\..\\HEIRV32\\MultiCycle\\hds"
 )
 (vvPair
 variable "SideDataDesignDir"
-value "C:\\dev\\CAr\\car-heirv\\Prefs\\..\\HEIRV32\\MultiCycle\\hds\\main@f@s@m\\student@version.sm.info"
+value "C:\\Users\\raphael.gonin\\Documents\\Goat\\Prefs\\..\\HEIRV32\\MultiCycle\\hds\\main@f@s@m\\student@version.sm.info"
 )
 (vvPair
 variable "SideDataUserDir"
-value "C:\\dev\\CAr\\car-heirv\\Prefs\\..\\HEIRV32\\MultiCycle\\hds\\main@f@s@m\\student@version.sm.user"
+value "C:\\Users\\raphael.gonin\\Documents\\Goat\\Prefs\\..\\HEIRV32\\MultiCycle\\hds\\main@f@s@m\\student@version.sm.user"
 )
 (vvPair
 variable "SourceDir"
-value "C:\\dev\\CAr\\car-heirv\\Prefs\\..\\HEIRV32\\MultiCycle\\hds"
+value "C:\\Users\\raphael.gonin\\Documents\\Goat\\Prefs\\..\\HEIRV32\\MultiCycle\\hds"
 )
 (vvPair
 variable "appl"
@@ -75,15 +75,15 @@ value "%(unit)_%(view)_config"
 )
 (vvPair
 variable "d"
-value "C:\\dev\\CAr\\car-heirv\\Prefs\\..\\HEIRV32\\MultiCycle\\hds\\main@f@s@m"
+value "C:\\Users\\raphael.gonin\\Documents\\Goat\\Prefs\\..\\HEIRV32\\MultiCycle\\hds\\main@f@s@m"
 )
 (vvPair
 variable "d_logical"
-value "C:\\dev\\CAr\\car-heirv\\Prefs\\..\\HEIRV32\\MultiCycle\\hds\\mainFSM"
+value "C:\\Users\\raphael.gonin\\Documents\\Goat\\Prefs\\..\\HEIRV32\\MultiCycle\\hds\\mainFSM"
 )
 (vvPair
 variable "date"
-value "14.01.2025"
+value "19.05.2026"
 )
 (vvPair
 variable "day"
@@ -95,7 +95,7 @@ value "mardi"
 )
 (vvPair
 variable "dd"
-value "14"
+value "19"
 )
 (vvPair
 variable "entity_name"
@@ -119,11 +119,11 @@ value "student@version"
 )
 (vvPair
 variable "graphical_source_author"
-value "Axam"
+value "raphael.gonin"
 )
 (vvPair
 variable "graphical_source_date"
-value "14.01.2025"
+value "19.05.2026"
 )
 (vvPair
 variable "graphical_source_group"
@@ -131,11 +131,11 @@ value "UNKNOWN"
 )
 (vvPair
 variable "graphical_source_host"
-value "WE10628"
+value "VS-W11662"
 )
 (vvPair
 variable "graphical_source_time"
-value "17:10:36"
+value "14:21:56"
 )
 (vvPair
 variable "group"
@@ -143,7 +143,7 @@ value "UNKNOWN"
 )
 (vvPair
 variable "host"
-value "WE10628"
+value "VS-W11662"
 )
 (vvPair
 variable "language"
@@ -163,7 +163,7 @@ value "$SCRATCH_DIR/CAr/HEIRV32/MultiCycle/work"
 )
 (vvPair
 variable "mm"
-value "01"
+value "05"
 )
 (vvPair
 variable "module_name"
@@ -171,19 +171,19 @@ value "mainFSM"
 )
 (vvPair
 variable "month"
-value "janv."
+value "mai"
 )
 (vvPair
 variable "month_long"
-value "janvier"
+value "mai"
 )
 (vvPair
 variable "p"
-value "C:\\dev\\CAr\\car-heirv\\Prefs\\..\\HEIRV32\\MultiCycle\\hds\\main@f@s@m\\student@version.sm"
+value "C:\\Users\\raphael.gonin\\Documents\\Goat\\Prefs\\..\\HEIRV32\\MultiCycle\\hds\\main@f@s@m\\student@version.sm"
 )
 (vvPair
 variable "p_logical"
-value "C:\\dev\\CAr\\car-heirv\\Prefs\\..\\HEIRV32\\MultiCycle\\hds\\mainFSM\\studentVersion.sm"
+value "C:\\Users\\raphael.gonin\\Documents\\Goat\\Prefs\\..\\HEIRV32\\MultiCycle\\hds\\mainFSM\\studentVersion.sm"
 )
 (vvPair
 variable "package_name"
@@ -211,7 +211,7 @@ value "studentVersion"
 )
 (vvPair
 variable "time"
-value "17:10:36"
+value "14:21:56"
 )
 (vvPair
 variable "unit"
@@ -219,7 +219,7 @@ value "mainFSM"
 )
 (vvPair
 variable "user"
-value "Axam"
+value "raphael.gonin"
 )
 (vvPair
 variable "version"
@@ -231,11 +231,11 @@ value "studentVersion"
 )
 (vvPair
 variable "year"
-value "2025"
+value "2026"
 )
 (vvPair
 variable "yy"
-value "25"
+value "26"
 )
 ]
 )
@@ -257,8 +257,8 @@ fg "0,65535,65535"
 lineColor "0,32768,49152"
 lineWidth 2
 )
-xt "36321,18919,46861,29459"
-radius 5270
+xt "35699,18297,47483,30081"
+radius 5892
 )
 name (Text
 uid 45,0
@@ -304,13 +304,14 @@ shape (Rectangle
 uid 52,0
 va (VaSet
 vasetType 1
-isHidden 1
+transparent 1
 fg "65535,65535,65535"
 bg "0,0,0"
 lineColor "39936,56832,65280"
 lineWidth -1
+fillStyle 1
 )
-xt "45491,27489,45691,27689"
+xt "40541,26889,50641,28289"
 )
 autoResize 1
 tline (Line
@@ -321,10 +322,10 @@ isHidden 1
 lineColor "39936,56832,65280"
 lineWidth -1
 )
-xt "41591,24189,41591,24189"
+xt "40641,26789,50541,26789"
 pts [
-"41591,24189"
-"41591,24189"
+"40641,26789"
+"50541,26789"
 ]
 )
 bline (Line
@@ -335,10 +336,10 @@ isHidden 1
 lineColor "39936,56832,65280"
 lineWidth -1
 )
-xt "41591,24189,41591,24189"
+xt "40641,26189,50541,26189"
 pts [
-"41591,24189"
-"41591,24189"
+"40641,26189"
+"50541,26189"
 ]
 )
 ttri (Triangle
@@ -352,7 +353,7 @@ bg "0,0,0"
 lineColor "39936,56832,65280"
 lineWidth -1
 )
-xt "41141,24014,41491,24364"
+xt "40191,26414,40541,26764"
 )
 btri (Triangle
 uid 56,0
@@ -365,20 +366,21 @@ bg "0,0,0"
 lineColor "39936,56832,65280"
 lineWidth -1
 )
-xt "41141,24014,41491,24364"
+xt "40191,24014,40541,24364"
 )
 entryActions (MLText
 uid 57,0
 va (VaSet
 )
-xt "41591,24189,41591,24189"
+xt "40641,26589,40641,26589"
 tm "Actions"
 )
 inActions (MLText
 uid 58,0
 va (VaSet
 )
-xt "41591,24189,41591,24189"
+xt "40641,26989,50541,28189"
+st "ALUOp <= \"00\";"
 tm "Actions"
 )
 exitActions (MLText
@@ -787,7 +789,7 @@ fg "0,0,32768"
 bg "0,0,32768"
 font "Arial,8,0"
 )
-xt "22227,14702,33527,15702"
+xt "22227,14702,34227,15702"
 st "
 by %user on %dd %month %year
 "
@@ -2077,9 +2079,9 @@ uid 339,0
 va (VaSet
 vasetType 3
 )
-xt "41495,29458,41517,30900"
+xt "41495,30080,41508,30900"
 pts [
-"41517,29458"
+"41508,30080"
 "41495,30900"
 ]
 arrow 1
@@ -2100,7 +2102,7 @@ fg "65535,65535,65535"
 bg "0,0,0"
 lineColor "0,32768,49152"
 )
-xt "41006,30274,47306,31284"
+xt "41001,30585,47301,31595"
 )
 autoResize 1
 lineShape (Line
@@ -2109,24 +2111,24 @@ va (VaSet
 vasetType 3
 isHidden 1
 )
-xt "44156,31779,44156,31779"
+xt "44151,32090,44151,32090"
 pts [
-"44156,31779"
-"44156,31779"
+"44151,32090"
+"44151,32090"
 ]
 )
 condition (MLText
 uid 343,0
 va (VaSet
 )
-xt "41506,30179,46806,31379"
+xt "41501,30490,46801,31690"
 tm "Condition"
 )
 actions (MLText
 uid 344,0
 va (VaSet
 )
-xt "44156,31779,44156,31779"
+xt "44151,32090,44151,32090"
 tm "Actions"
 )
 )
@@ -2141,7 +2143,7 @@ isHidden 1
 fg "65535,65535,65535"
 bg "0,0,0"
 )
-xt "40451,28539,42577,30665"
+xt "40443,29099,42569,31225"
 radius 1063
 )
 pr (Text
@@ -2149,10 +2151,10 @@ uid 347,0
 va (VaSet
 isHidden 1
 )
-xt "40814,29002,42214,30202"
+xt "40806,29562,42206,30762"
 st "1"
 ju 0
-blo "41514,30002"
+blo "41506,30562"
 tm "TransitionPriority"
 )
 padding "100,100"
@@ -2620,8 +2622,8 @@ tm "SmCompilerDirectivesTextMgr"
 ]
 associable 1
 )
-windowSize "-1928,-259,8,789"
-viewArea "-1300,-2200,162668,86120"
+windowSize "509,0,1543,841"
+viewArea "-6513,4381,74087,73081"
 cachedDiagramExtent "-87,-1000,76900,83746"
 pageSetupInfo (PageSetupInfo
 ptrCmd ""
@@ -3026,7 +3028,7 @@ stateOrder [
 name "csm"
 )
 ]
-lastUid 452,0
+lastUid 481,0
 commonDM (CommonDM
 ldm (LogicalDM
 emptyRow *65 (LEmptyRow

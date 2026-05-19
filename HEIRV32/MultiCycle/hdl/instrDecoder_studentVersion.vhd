@@ -2,15 +2,14 @@
 ARCHITECTURE studentVersion OF instrDecoder IS
 BEGIN
 
-  -- The following is DUMMY code
-  -- Change it according to your needs
   decode : process(op)
   begin
     case op is
-      when "0000000" => immSrc <= "--";
-      when "0000001" => immSrc <= "--";
-      when "0000010" => immSrc <= "--";
-      when others    => immSrc <= "--";
+      when "0010011" => immSrc <= "00";-- I-Type
+      when "0100011" => immSrc <= "01";-- S-Type
+      when "1100011" => immSrc <= "10";-- B-Type
+	  when "1101111" => immSrc <= "11";-- J-Type
+      when others    => immSrc <= "XX";-- Others
     end case;
   end process decode;
 
