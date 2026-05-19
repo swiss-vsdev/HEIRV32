@@ -471,7 +471,7 @@ value "VS-W11662"
 )
 (vvPair
 variable "graphical_source_time"
-value "11:33:11"
+value "14:22:01"
 )
 (vvPair
 variable "group"
@@ -547,7 +547,7 @@ value "studentVersion"
 )
 (vvPair
 variable "time"
-value "11:33:11"
+value "14:22:01"
 )
 (vvPair
 variable "unit"
@@ -4083,10 +4083,10 @@ uid 2640,0
 va (VaSet
 font "Verdana,12,0"
 )
-xt "17200,112300,34000,113700"
+xt "14200,112300,31000,113700"
 st "value : (g_BIT_NB-1:0)"
 ju 2
-blo "34000,113500"
+blo "31000,113500"
 )
 )
 thePort (LogicalPort
@@ -12496,8 +12496,8 @@ tm "BdCompilerDirectivesTextMgr"
 ]
 associable 1
 )
-windowSize "0,0,1537,864"
-viewArea "-22290,16688,208159,146063"
+windowSize "-8,-8,1544,842"
+viewArea "-8729,39408,177739,140940"
 cachedDiagramExtent "-2000,0,206000,122000"
 pageSetupInfo (PageSetupInfo
 ptrCmd ""
