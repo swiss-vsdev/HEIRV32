@@ -20,3 +20,6 @@ default_view
 # Ignore Mac OS files
 *.DS_STORE
 work/
+
+# Ignore Visual Studio Code workspace file
+HEIRV32.code-workspace
