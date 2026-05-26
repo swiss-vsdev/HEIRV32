@@ -135,7 +135,7 @@ value "C:\\Users\\raphael.gonin\\Documents\\Goat\\Prefs\\..\\HEIRV32\\MultiCycle
 )
 (vvPair
 variable "date"
-value "19.05.2026"
+value "26.05.2026"
 )
 (vvPair
 variable "day"
@@ -147,7 +147,7 @@ value "mardi"
 )
 (vvPair
 variable "dd"
-value "19"
+value "26"
 )
 (vvPair
 variable "entity_name"
@@ -175,7 +175,7 @@ value "raphael.gonin"
 )
 (vvPair
 variable "graphical_source_date"
-value "19.05.2026"
+value "26.05.2026"
 )
 (vvPair
 variable "graphical_source_group"
@@ -187,7 +187,7 @@ value "VS-W11662"
 )
 (vvPair
 variable "graphical_source_time"
-value "14:21:59"
+value "12:39:59"
 )
 (vvPair
 variable "group"
@@ -263,7 +263,7 @@ value "rtl"
 )
 (vvPair
 variable "time"
-value "14:21:59"
+value "12:39:59"
 )
 (vvPair
 variable "unit"
@@ -4280,8 +4280,8 @@ tm "BdCompilerDirectivesTextMgr"
 ]
 associable 1
 )
-windowSize "-7,0,523,841"
-viewArea "22915,12117,66372,84547"
+windowSize "0,0,1537,850"
+viewArea "-33700,9731,116760,92720"
 cachedDiagramExtent "-6000,0,90000,76900"
 pageSetupInfo (PageSetupInfo
 ptrCmd ""
@@ -4305,7 +4305,7 @@ exportStdPackageRefs 1
 )
 hasePageBreakOrigin 1
 pageBreakOrigin "-7000,0"
-lastUid 1599,0
+lastUid 1649,0
 defaultCommentText (CommentText
 shape (Rectangle
 layer 0
