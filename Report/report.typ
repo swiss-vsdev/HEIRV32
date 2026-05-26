@@ -31,233 +31,59 @@
 #table-of-contents(depth: 1)
 
 = Objectif du laboratoire
-L'objectif de ce laboratoire est de comprendre la façon dont les performances d'un ordinateur sont mesurées, les facteurs qui influences les mesures et l'impact du développeur sur ces dernières.
+L'objectif de ce projet est de développer une architecture de processeur simple, de 
+type RISC-V. Nous allons essentiellement nous concentrer sur la conception de l'unité de 
+contrôle. Nous allons également implémenter un ensemble d'instructions 
+de base pour permettre au processeur d'exécuter des programmes simples.
 
-Pour ce faire, nous avons effectué des tests sur notre propre ordinateur, afin d'ensuite comparer nos résultats avec ceux de nos collègues.
+La partie matérielle comprend une carte de développement FPGA ainsi que
+plusieurs boutons et LEDs pour interagir avec le processeur.
 
-= Benchmarks
-Nous avons utilisé le logiciel GeekBench 6 de Primatelabs pour réaliser les tests.
+La deuxième partie du projet consistera à créer un programme en assembleur qui sera exécuté
+sur notre processeur, et qui permttra de tester les différentes fonctionnalités que nous avons implémentées.
 
-Ce logiciel permet de mesurer les performances :
-- Du processeur (CPU) :
-  - En single thread : on mesure ici la performance d'un seul coeur à la fois, ce qui ne dépend pas du nombre de coeurs dont dispose le processeur.
-  - En multi-thread : la capacité du processeur à effectuer des opérations en parallèle est ici mesurée : la performance est ici relative à la performance d'un seul coeur ainsi qu'au nombre de coeurs.
-- Du processeur graphique (GPU) :
-  - OpenCL : effectue des calculs génériques à l'aide du GPU
-  - Vulkan : effectue des calculs de rendu vidéo à l'aide du GPU
-Les résultats de ces tests sont comparés à une valeur de base et donnent ensuite une évaluation relative de performances.
+Contrairement au laboratoire précédent, il s'agit ici d'un processeur multicycle, dont le 
+fonctionnement est plus complexe que celui d'un processeur à cycle unique.
 
-== Caractéristiques techniques
-Mon ordinateur, coabaye dans ce laboratoire, est un laptop de marque Asus avec les caractéristiques techniques suivantes :
+= Spécification
+Le processeur que nous allons implémenter doit être capable d'exécuterles instructions de base suivantes:
+- Type R : *add, sub, and, or, slt, xor, sll, srl*
+- Type I : *addi, andi, ori, slti, xori, slli, srli*
+- Type mémoire : *lw, sw*
+- Type saut: *beq, jal, jalr*
+Il doit également pouvoir écouter l'activation d'un bouton pour déclencher l'exécution 
+du programme, et afficher le résultat de l'exécution sur les LEDs.
 
+= Design
+== Top Level
+La première étape du projet consiste à relier les différents composants du processeur entre eux. 
+Les différents signaux de contrôle provenant de l'unité de contrôle doivent être 
+correctement acheminés vers les différentes unités fonctionnelles du processeur, telles 
+que l'ALU, les registres, la mémoire, etc.
 
-*CPU* : AMD Ryzen 9 5900HS, 8 coeurs/16 threads fréquence de base 3 Ghz, boost 4.6 Ghz
+== Unité de contrôle
+L'unité de contrôle est le cœur du processeur, elle reçoit les instructions du programme
+et produit les signaux controlant l'état de tous les éléments du processeur.
 
-*RAM* : 40 Gb (8 + 32), DDR4-3200
+=== AluDecoder
+Ce bloc est chargé de décoder les instructions découlant du signal *AluOp* et de générer 
+les signaux de contrôle de l'ALU. Il prend également en compte les signaux *func3* et *func7*.
 
-*iGPU* : AMD Radeon Vega C4, 512Mb DDR4
+=== InstrDecoder
+Ce bloc s'occupe de décoder les instructions provenant du signal *Op* et de produire 
+le signal de contrôle pour le bloc *extend*.
 
-*dGPU* : NVIDIA GeForce RTX 3060 Laptop GPU, 6GB GDDR6
+=== Main FSM
+Cette unité génère les signaux de contrôle de tous les autres blocs du processeur.
 
-*SSD* : 2TB PCIe 3.0 NVMe M.2 SSD
+= Simulation
 
-== Résultats des tests CPU
-#let cpu_header = [*CPU*]
-#figure(table(
-  columns: (1fr, 1fr),
-  align: center + horizon,
-  table.header(table.cell(colspan: 2, cpu_header)),
-  [*Single core*],[*Multi core*],
-  [1692], [6261],
-), caption: [Performances CPU]) <fig_res_cpu>
+= Implémentation
 
-== Performances iGPU
-#let igpu_header = [*iGPU*]
-#figure(table(
-  columns: (1fr, 1fr),
-  align: center + horizon,
-  table.header(table.cell(colspan: 2, igpu_header)),
-  [*OpenCL*],[*Vulkan*],
-  [14460], [13211],
-), caption: [Performances iGPU]) <fig_res_igpu>
-
-== Performances iGPU
-#let dgpu_header = [*dGPU*]
-#figure(table(
-  columns: (1fr, 1fr),
-  align: center + horizon,
-  table.header(table.cell(colspan: 2, dgpu_header)),
-  [*OpenCL*],[*Vulkan*],
-  [89831], [12924],
-), caption: [Performances dGPU]) <fig_res_dgpu>
-
-== Performances ZIP
-#let zip_header = [*ZIP*]
-#figure(table(
-  columns: (1fr, 1fr),
-  align: center + horizon,
-  table.header(table.cell(colspan: 2, dgpu_header)),
-  [*Unzip*],[*Zip*],
-  [2.68], [4.64],
-), caption: [Performances ZIP]) <fig_res_zip>
-
-= Comparaison des résultats
-== Comparaison CPU
-=== A quoi correspond le score ?
-Le score est relatif à un modèle de référence de 2500 points, correspondant au score d'un processeur Intel Core i7-12700. L'échelle étant linéaire, elle est facile à interpréter (deux fois plus de point = deux fois plus performant).
-Il existe deux scores :
-- Single-core : mesure les performances d'un seul coeur, retourne un résultat indépendant du nombre de coeurs
-- Multi-core : mesure les performances globales du processeur, en utilisant tous les coeurs.
-
-=== Quels sont les points testés par Geekbench 6 ?
-Geekbench teste les catégories suivantes :
-- Tâches de productivité : compression de fichiers, navigation GPS, navigation web, génération de PDF
-- Tâches de développement : édition de texte, compilation de code
-- Machine learnig : détection d'objets sur des images
-- Synthèse d'image : traçage de rayons lumineux, génération de géométrie 3D
-- Transformations d'image : détection de l'horizon, filtres photo
-
-=== A quoi correspondent les architectures x86, AMD64 (x86_64) et AARCH64 ?
-- x86
-Il s'agit de l'architecture historique des processeurs Intel, en 32 bits. Sortie en 1978 sur les processeurs 8086, elle est aujourd'hui obsolète.
-- AMD64 (x86_64)
-Descendante 64 bits de l'architecture x86, elle est utilisée à la fois par Intel et par AMD, qui l'a développée. C'est la plus répandue à l'heure actuelle.
-- AARCH64
-Également une architecture 64 bits, elle est principalement utilisée dans les smartphones et les tablettes, les derniers processeurs Apple, les Raspberry Pi, en raison de son côté économe en énergie.
-
-=== Une fréquence supérieure d’horloge est-elle gage de performances supérieures d’un CPU à l’autre ?
-Les performances d'un CPU dépendent grandement :
-- De l'architecture : une instruction ARM peut être équivalente à plusieurs instructions Amd64, et vice versa
-- Le nombre de coeurs : une fréquence élevée avec un nombre de coeurs réduit est souvent moins efficace que l'inverse ; les tâches parallélisables sont effectuées beaucoup plus rapidement avec un nombre de coeurs plus élevé
-- Le nombre d'instruction par cycle : si un CPU peut effectuer plus d'instruction par cycle qu'un autre, à fréquence et nombre de coeurs égaux, il sera plus performant
-
-== Comparaison GPU
-=== Qu’est-ce que CUDA, OpenCL et Metal ?
-Il s'agit d'APIs de calcul sur GPU, qui permettent d'utiliser ce dernier pour des calculs autres que des calculs de rendus graphique.
-- CUDA : développé par Nvidia, très utilisé dans le domaine de l'IA. Ne fonctionne que sur GPU Nvidia
-- OpenCL : équivalent open source à CUDA, peut être utilisé sur n'importe quel GPU
-- Metal : équivalent Apple de CUDA
-
-=== Quels sont les points testés par Geekbench 6 ? Donner les 4 grandes catégories.
-- Machine learning
-- Edition d'image
-- Synthèse d'image
-- Simulation de physique de particules
-
-=== Comment un GPU diffère-t’il d’un CPU ?
-Un CPU peut effectuer un grand nombre d'opérations différentes, soit à la suite, soit en parallèle, soit un mélange des deux. Un GPU est prévu pour effectuer un très grand nombre d'opérations similaire en parallèle.
-
-== Comparaison RAM
-=== Quelle(s) différence(s) existe(nt) entre des RAMs de type DDR4, LPDDR4 et DDR5 ?
-- DDR4
-Double Data Rate 4, très répandue depuis 2014
-- LPDDR4
-Low Power Double Data Rate 4, très répandue dans les smartphones, tablettes et ultrabooks
-- DDR5
-Double Data Rate 5, deux fois plus rapide que la DDR4, montée sur laptops et pcs haut de gamme
-- LPDDR5
-Low Power Double Data Rate 5, le meilleur des deux mondes ;)
-
-=== A quoi correspond le CAS, aussi nommé CL pour CAS Latency ?
-Il s'agit du temps de réaction de la mémoire vive ; le CL représente le nombre de cycles d'horloge qui s'écoulent entre le moment où le contrôleur mémoire envoie une demande de lecture d'une donnée et le moment où cette donnée est effectivement disponible en sortie.
-
-=== Je travaille sur un programme accédant à des milliers de données en cache. D’un point de vue purement performance d’accès à une donnée, devrais-je préférer utiliser de la RAM DDR4 4000 MT/s CL18 ou de la RAM DDR5 4000 MHz CL38 ?
-Le calcul de la @fig_cl montre que la RAM DDR4 4000MT/s CL18 est très légèrement plus rapide.
-#figure(table(
-  columns: (1fr, 1fr, 1fr, 1fr, 1fr),
-  align: center + horizon,
-  table.header([*RAM*],[*MT/s*],[*Fréquence* [Mhz]],[*CL*],[*Latence* [ns]]),
-  [DDR4], [4000], [2000], [CL18], [$(18 * 2000) / 4000 = 9"ns"$],
-  [DDR5], [8000], [4000], [CL38], [$(38 * 2000) / 8000 = 9.5"ns"$]
-), caption: [Calcul de la latence RAM]) <fig_cl>
-
-== Comparaison des ordinateurs
-Globalement mon ordinateur se trouve dans le bas du tableau dans la partie CPU, probablement que cela est dû à son âge (c'est un modèle de 2021), par contre son GPU surpasse largement les autres, car il s'agit d'un GPU dédié (en supplément d'un GPU intégré), relativement performant (surtout pour un laptop de 14 pouces). Le tableau ci-dessous montre les résultats de cette comparaison :
-
-
-== Calculs de performance du program Zip
-- Quel système est le plus rapide ?
-Il s'agit d'un ordinateur fixe avec un GPU dédié
-
-- Quel est le facteur entre le système le plus lent et le plus rapide ?
-On observe un facteur 4, même entre des processeur de génération similaire
-
-- Y’a-t’il une corrélation avec le score CPU ? La RAM ?
-Il y a une corrélation entre le score CPU, mais surtout avec le type de RAM ; la RAM DDR4 est bien moins rapide, ce qui influe sur les performances générales, même avec une configuration élevée. Les processeurs de dernières génération sont les plus performants, sams pour autant qu'il s'agisse de modèles haut de gamme.
-
-= Optimisation software
-Comme on peut le constater dans le tableau , les langages compilés Rust et C sont en moyenne *dix fois* plus rapide que les langages interprétés tels que JavaScript.
-On remarque également que l'algorithme optimisé peut prendre plus de temps que l'algorithme non-optimisé. Par contre, lorsque qu'il s'agit d'une liste triée, c'est là que ce dernier brille, parcourant le tableau en un temps quasi instantané. Cela vient du fait que l'algorithme optimisé vérifie à la fin de chaque passage à travers le tableau si un swap a été effectué. Si tel n'est pas le cas, il peut déterminer que toutes les valeurs sont dans l'ordre.
-
-
-== Bubble sort vs quicksort
-J'ai choisi l'algorithme de tri quicksort, qui est largement utilisé dans les librairies standard, et, comme on peut l'observer dans la @, cet algorithme est beaucoup plus rapide dans la majeure partie des cas. Il comporte toutefois le risque de voir son temps d'exécution augmenter, dans certains cas comme les listes déjà triées. On observe également qu'il est relativement stable par rapport à la taille du tableau d'entrée.
-// #figure(
-//   image("sorting_comp_scala.png", height: 3cm),
-//   caption: [Comparaison entre bubble sort et quick sort]
-// ) <fig_quick_comparison>
-
-== Langage choisi: Scala
-Scala est un langage qui est compilé à la volée, comme Java, sur lequel il est basé. Cela peut impliquer une exécution plus lente que les langages compilés.
-
-Avantages:
-- Fonctionnel et orienté objet
-- Intègre parfaitement tout l'écosystème Java
-- Moins verbeux que Java
-- Typage fort
-
-Inconvénients
-- Moins répandu
-- Courbe d'apprentissage
-- Temps de compilation
-
-== Algorithme QuickSort
-Cet algorithme est dit "divide & conquer", puisqu'il partitionne le tableau autour d'un pivot récursivement, et réarrange chaque partition avec les éléments les plus petit à gauche du pivot, et les plus grands à droite. La récursion s'arrête lorsqu'il n'y a plus qu'un seul élément dans la partition.
-
-Il a une complexité $O(n log(n))$ dans la plupart des cas, mais peut avoir une complexité $O(n^2)$ lorsque le pivot choisi est le plus grand ou le plus petit élément.
-
-=== Code Scala
-Le @fig_quicksort_scala_code présente l'implémentation de l'algorithme QuickSort en Scala. Il est composé d'une helper function `swap()` qui permet d'échanger deux éléments dans un tableau, d'une autre helper function `partition()` qui retourne une borne de la partition, qui sera utilisée dans la fonction principale `quicksort()`, qui parcourt récursivement les deux partitions de part et d'autre du pivot.
-#figure(code()[
-```scala
-  def mySortAlgorithm(data: Array[Int]): Array[Int] = {
-    def swap(a: Array[Int], pos1: Int, pos2: Int): Unit = {
-      val stash = a(pos1)
-      a(pos1) = a(pos2)
-      a(pos2) = stash
-    }
-    def partition(subArray: Array[Int], low: Int, hi: Int): Int = {
-      val pivot = hi;
-      var i = low;
-      for (
-        j <- low to hi
-        if subArray(j) < subArray(pivot)
-      ) { swap(subArray, i, j); i += 1 }
-
-      swap(subArray, i, pivot);
-      return i
-    }
-
-    def quicksort(a: Array[Int], low: Int, hi: Int): Unit = {
-      if (low < hi) {
-        val p = partition(a, low, hi)
-        quicksort(a, low, p - 1)
-        quicksort(a, p + 1, hi)
-      }
-    }
-
-    quicksort(data, 0, data.length-1)
-    data
-  }
-  ```
-], caption: "Quick sort en Scala")
-<fig_quicksort_scala_code>
-
+== Fonctions supplémentaires
 
 = Conclusion
-Ces tests de performance sont plutôt indicatifs, car la santé du système, l'âge et le système d'exploitation sont des variables qui peuvent beaucoup peser sur la balance et influencer grandement l'environnement de test. On peut voir de grandes différences de score pour des ordinateurs identiques, ce qui laisse croire que ces tests sont à prendre avec des pincettes.
-
-Pour avoir des résultats plus précis et fiables, il faudrait pouvoir réunir des conditions de laboratoire identiques pour chaque machine testée, et comparer des systèmes équivalents : un ultrabook de moins d'un kilo ne peut pas être comparé avec un ordinateur de jeu, le refroidissement et le prix sont des variables qui donnent de grandes différences.
+Ce
 
 /*
 #pagebreak()
