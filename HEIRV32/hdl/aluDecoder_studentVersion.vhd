@@ -23,7 +23,7 @@ BEGIN
 		elsif (funct3 = "110") then
 		  ALUControl <= "011";
 		elsif (funct3 = "111") then
-		  ALUControl <= "010";
+		  ALUControl <= "010"; 
 		else
 		  ALUControl <= "000";
         end if;
