@@ -46,7 +46,7 @@ settingsMap [
 "GlitchGeneration"
 "1"
 "InitCmd"
-"$SIMULATION_DIR/mc_heirv32.do"
+"C:/Users/raphael.gonin/Documents/Goat/Simulation/mc_heirv32.do"
 "LogFile"
 ""
 "RemoteHost"
