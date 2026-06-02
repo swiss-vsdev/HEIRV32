@@ -32,7 +32,7 @@ chenille:
 
 go_right:
     add   x30, zero, s0    # Allumer LED courante
-    jal   ra, delay        # Attendre 50k cycles
+    jal   ra, delay        # Attendre 65k cycles
 
     slli  s0, s0, 1        # Décaler vers la gauche
     addi  s1, s1, 1        # Compteur += 1
@@ -50,7 +50,7 @@ go_left_init:
 
 go_left:
     add   x30, zero, s0    # Allumer LED courante
-    jal   ra, delay        # Attendre 50k cycles
+    jal   ra, delay        # Attendre 65k cycles
 
     srli  s0, s0, 1        # Décaler vers la droite
     addi  s1, s1, 1        # Compteur += 1
@@ -68,19 +68,19 @@ end_chenille:
     jalr  zero, ra, 0      # jump back to ra
 
 # ============================================================
-#  delay : boucle d'attente (~50000 cycles)
+#  delay : boucle d'attente (65504 cycles)
 # ============================================================
 
 delay:
     addi  sp, sp, -4
     sw    ra, 0(sp)			# Sauvegarder return address sur la pile
 
-    # Charger 50000 dans t3 : 50000 = 0xC350
-	lui t3, 0x000C
-	addi t3, t3, 0x350
+    # Charger 65504 dans t3
+	addi t3, t3, 0x7ff      # Charger 2047 sur t3
+	slli t3, t3, 5          # t3 = t3 * 2^5 (=65504)
 
 delayloop:
-	# Dénombrer de 50k à 0
+	# Dénombrer de 65504 à 0
 	beq t3, zero, delay_done # Si t3 == 0, goto delay_done
 	addi t3, t3, -1          # t3 = t3 - 1 
 
