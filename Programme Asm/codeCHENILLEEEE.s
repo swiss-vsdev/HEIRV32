@@ -6,10 +6,11 @@
 _start:
 	addi sp, sp, 0x500        # Stack base address == 0x500
     # Attends appui sur S1 (bit 1 de x31) ----
-wait_s1:
-    andi  t0, x31, 2         # Isoler bit 1 (bouton S1)
-    beq   t0, zero, _start   # attendre que S1 soit relâché avant de recommencer
-    beq   t0, zero, wait_s1  # while t0 == 0, goto wait_s1
+
+wait_s0:
+    andi  t0, x31, 1         # Isoler bit 0 (bouton S0)
+    beq   t0, zero, _start   # attendre que S0 soit relâché avant de recommencer
+    beq   t0, zero, wait_s0  # while t0 == 0, goto wait_s0
 
     # if t0 == 1 : Lancer la chenille
     jal   ra, chenille
