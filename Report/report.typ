@@ -30,6 +30,17 @@
 
 #table-of-contents(depth: 1)
 
+= Introduction
+
+Ce projet s'inscrit dans le cadre du cours d'Architecture des ordinateurs de la filière
+Informatique et Systèmes de Communication à la HES-SO Valais/Wallis. L'objectif est de réaliser
+un processeur RISC-V 32 bits, simulé sous ModelSim puis
+déployé physiquement sur une carte FPGA EBS 3.
+
+Le travail couvre trois axes complémentaires : la conception du chemin de données en VHDL,
+l'implémentation de l'unité de contrôle (FSM, décodeur ALU, décodeur d'instruction), et l'écriture
+d'un programme en assembleur HEIRV32 exploitant les boutons et les LEDs de la carte d'extension.
+
 = Objectif du laboratoire
 L'objectif de ce projet est de développer une architecture de processeur simple, de 
 type RISC-V. Nous allons essentiellement nous concentrer sur la conception de l'unité de 
@@ -61,9 +72,19 @@ Les différents signaux de contrôle provenant de l'unité de contrôle doivent 
 correctement acheminés vers les différentes unités fonctionnelles du processeur, telles 
 que l'ALU, les registres, la mémoire, etc.
 
+#figure(
+  image("../img/TopLevel.PNG", width: 13cm),
+  caption: [Vue top-level du système HEIRV32 sur FPGA],
+)
+
 == Unité de contrôle
 L'unité de contrôle est le cœur du processeur, elle reçoit les instructions du programme
 et produit les signaux controlant l'état de tous les éléments du processeur.
+
+#figure(
+  image("../img/ControlUnit.PNG", width: 13cm),
+  caption: [Vue top-level du Control Unit],
+)
 
 === AluDecoder
 Ce bloc est chargé de décoder les instructions découlant du signal *AluOp* et de générer 
