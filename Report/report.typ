@@ -25,10 +25,23 @@
 //// If using acronyms
 #import "@preview/acrostiche:0.6.0": *
 #include "acronyms.typ"
+#show raw.where(lang: "vhdl"): set raw(syntaxes: "VHDL.sublime-syntax")
+#show raw.where(lang: "riscv"): set raw(syntaxes: "riscv-asm.sublime-syntax")
 
 // Let's get started folks!
 
-#table-of-contents(depth: 1)
+#table-of-contents(depth: 2)
+
+= Introduction
+
+Ce projet s'inscrit dans le cadre du cours d'Architecture des ordinateurs de la filière
+Informatique et Systèmes de Communication à la HES-SO Valais/Wallis. L'objectif est de réaliser
+un processeur RISC-V 32 bits, simulé sous ModelSim puis
+déployé physiquement sur une carte FPGA EBS 3.
+
+Le travail couvre trois points principaux : la conception du chemin de données en VHDL,
+l'implémentation des l'unités de contrôle (FSM, décodeur ALU, décodeur d'instruction), et l'écriture
+d'un programme en assembleur HEIRV32 exploitant les boutons et les LEDs de la carte d'extension.
 
 = Objectif du laboratoire
 L'objectif de ce projet est de développer une architecture de processeur simple, de 
@@ -37,16 +50,13 @@ contrôle. Nous allons également implémenter un ensemble d'instructions
 de base pour permettre au processeur d'exécuter des programmes simples.
 
 La partie matérielle comprend une carte de développement FPGA ainsi que
-plusieurs boutons et LEDs pour interagir avec le processeur.
+plusieurs boutons et LEDs pour interagir avec le processeur nous est fournie.
 
 La deuxième partie du projet consistera à créer un programme en assembleur qui sera exécuté
 sur notre processeur, et qui permttra de tester les différentes fonctionnalités que nous avons implémentées.
 
-Contrairement au laboratoire précédent, il s'agit ici d'un processeur multicycle, dont le 
-fonctionnement est plus complexe que celui d'un processeur à cycle unique.
-
 = Spécification
-Le processeur que nous allons implémenter doit être capable d'exécuterles instructions de base suivantes:
+Le processeur que nous allons implémenter doit être capable d'exécuter les instructions de base suivantes:
 - Type R : *add, sub, and, or, slt, xor, sll, srl*
 - Type I : *addi, andi, ori, slti, xori, slli, srli*
 - Type mémoire : *lw, sw*
@@ -54,262 +64,567 @@ Le processeur que nous allons implémenter doit être capable d'exécuterles ins
 Il doit également pouvoir écouter l'activation d'un bouton pour déclencher l'exécution 
 du programme, et afficher le résultat de l'exécution sur les LEDs.
 
+#pagebreak()
+
+= Matériel utilisé
+
+Le système EBS3 repose sur trois platines : une motherboard, une daughterboard portant le FPGA, et une carte boutons/LEDs. 
+
+== Motherboard (EBS3)
+
+La carte mère expose les interfaces vers le monde extérieur :
+
+- 4 connecteurs *PMod* 
+- 2 ports parallèles
+- Port *Gigabit Ethernet* (contrôleur VSC8531, 125Mhz)
+- Port *USB-C* (contrôleur CP2102N)
+- Bouton *Hard Reset* (signal `nRESET_IN`)
+- Connecteur JTAG extender
+
+#figure(
+  image("../img/Motherboard.png", width: 7cm),
+  caption: [Carte Mère],
+) 
+== Daughterboard (LFE5U-25F)
+
+La carte fille héberge le FPGA et ses périphériques directs. Elle se connecte à la motherboard via un connecteur *SODIMM-200*.
+
+#align(center)[
+#table(
+  columns: (auto, auto),
+  align: center,
+  [*Composant*], [*Détail*],
+  [FPGA], [Lattice LFE5U-25F (famille ECP5)],
+  [Horloge], [100 MHz],
+  [Programmes], [QSPI Flash - AT25SF321B],
+  [DRAM], [256 Mb synchrone - IS42S16160J],
+  [Stockage code], [Slot micro-SD],
+  [Flashing], [USB/JTAG],
+  [Alimentation], [USB-C +5V ou via motherboard],
+  [Tensions internes], [+3.3 V / +2.5 V / +1.1 V],
+)
+]
+
+Trois LEDs indiquent l'état du système :
+
+- *LED bicolore (bleu/jaune)* : bleu signifie que la board est en train de reçevoir des données, jaune que des données sont transmises de la board à l'hôte
+- *LED verte (LD2)* : programme en cours de chargement depuis la SD (séquence de démarrage active)
+- *LED rouge (LD3)* : FPGA sous tension et prêt à être configuré (programme non encore chargé)
+
+Deux boutons sont disponibles sur la daughterboard :
+
+- *Hard Reset* : reset matériel via le circuit APX811-31U (power-on-reset)
+- *Soft Reset* : force le rechargement du programme depuis la flash QSPI
+
+#figure(
+  image("../img/Daughter.png", width: 8cm),
+  caption: [Carte Fille],
+) 
+
+== Carte boutons et LEDs
+
+Cette carte fille secondaire est connectée à la motherboard. Elle possède *4 boutons* et *8 LEDs*, reliés directement aux registres du processeur RISC-V :
+
+- x30 : registre d'écriture des LEDs (bit 0 = LED 0, bit 1 = LED 1, …)
+- x31 : registre de lecture des boutons (lecture seule ; bit 0 = S1, bit 1 = S2, …)
+
+#figure(
+  image("../img/LED.png", width: 7cm),
+  caption: [Carte boutons et LEDs],
+) 
+
+== Boards supplémentaires
+#align(center)[
+#table(
+  columns: (auto, auto),
+  align: center,
+  [*Type*], [*Modules*],
+  [Entrées], [PMod BTN, PMod CON1, PMod CON3],
+  [Sorties], [PMod OD1, PMod BB],
+  [E/S], [PMod MAXSONAR (capteur à ultrasons)],
+  [LEDs], [PMod 8LD (8 LEDs supplémentaires)],
+)
+]
+#figure(
+  image("../img/LedMod.png", width: 4cm),
+  caption: [Carte supplémentaire LEDs],
+) 
+
+= Outils
+== HDL Designer
+HDL Designer est un outil est un outil de conception de circuits numériques. Il s'agit de l'outil que nous avons utilisé tout au long de ce projet afin de concevoir notre implémentation du HEIRV32.
+
+== ModelSim
+ModelSim est un simulateur qui permet de voir les détails du fonctionnement d'un circuit fait avec HDL Designer. Il nous permet de contrôler le bon fonctionnement de notre implémentation a l'aide de tests unitaires ainsi que de manière visuelle grâce à la représentation visuelle des signaux.
+
+== Latice Diamond
+Latice Diamond nous permet de flasher la carte FPGA avec un circuit réalisé dans HDL Designer
+
 = Design
+
+== Blocs fournis
+Les différents blocs nécessaires à la construction d’un processeur RISC-V ont été fournis et sont listés ci-dessous.
+
++ HEIRV32_MC
+  - *controlUnit* : bloc pour le décodage des instructions
+  - *heirv32_mc* : top-level
+  - *instructionDataManager* : mémoire du programme groupant instructions et data, capable de lecture et écriture
+
+
++ HEIRV32
+  - *ALU* : une version de l’ALU capable d’addition, soustraction, AND, OR, et SLT
+  - *buffer*(Enable) : buffer clockés (bascules) avec ou sans entrée enable
+  - *extend* : bloc d’extension de l’instruction pour les tests, supportant les instructions I, S, B et J
+  - *mux3To1ULogVec* : mux 3 vers 1 de std_ulogic_vector
+  - *registerFile* : bloc de gestion des 32 registres, remplaçant x31 par le vecteur btns - registre de lecture des boutons - et x30 par le vecteur LEDs - registre d’écriture des LEDs -
+
+= Bases Théoriques
+Afin de comprendre le fonctionnement du processeur HEIRV32, il est nécessaire d'analyser les
+caractéristiques de chaque instruction supportée. Dans l'architecture multi-cycle choisie, chaque
+instruction est décomposée en étapes distinctes, séparées par un coup d'horloge. Le pipeline se
+construit comme suit :
+
+#pad(left: 1.5em)[
+  + *Fetch* : récupération de l'instruction en mémoire
+  + *Decode* : décodage de l'instruction et lecture des registres sources
+  + *Execute* : exécution de l'opération dans l'ALU
+  + *Memory Access* : accès mémoire (uniquement pour `lw`)
+  + *Write Back* : enregistrement du résultat dans le registre de destination (sauf `jal`)
+]
+
+Toutes les instructions ne nécessitant pas l'exécution de chaque étape, ces dernières peuvent être
+dissociées, séparées par un coup d'horloge. Les instructions les plus
+courtes ne nécessitant que 3 à 4 étapes bénéficieront d'un traitement plus rapide. 
+
+=== Fetch
+
+Le *fetch* correspond à la récupération de l'instruction depuis la mémoire. Le bloc responsable
+est l'`instructionDataManagerSDCard`. Il accède à la mémoire grâce au *Program Counter* (*PC*),
+une variable maintenant la position courante dans la mémoire du programme.
+
+L'instruction récupérée est sous forme binaire sur 32 bits. Par exemple :
+
+#figure(
+  image("../img/machinecode.png", width: 14cm),
+  caption: [Code binaire d'une instruction],
+) 
+
+En parallèle du chargement de l'instruction, un ALU séparé est utilisé pendant le Fetch pour calculer
+l'adresse suivante `PC + 4`.
+
+=== Decode
+
+Le *decode* extrait les champs significatifs de la chaîne binaire et génère les signaux de sélection
+pour l'ensemble des blocs du circuit. Cette étape est gérée par l'*unité de contrôle* (`controlUnit`).
+
+Les champs extraits sont :
+
+#pad(left: 1.5em)[
+  - *`opcode` bits \[6:0\]* : identifie le type d'instruction (R, I, S, B, J)
+  - *`funct3` bits \[14:12\]* : affine le décodage pour les instructions de même type
+  - *`funct7` bits \[31:25\]* : distingue par exemple `add` de `sub` (type R uniquement)
+  - *`rs1`, `rs2`* : adresses des registres sources (bits \[19:15\] et \[24:20\])
+  - *`rd`* : adresse du registre de destination (bits \[11:7\])
+  - *`imm`* : valeur immédiate, dont la position varie selon le type d'instruction
+]
+
+La répartition de ces champs par type d'instruction est la suivante :
+
+#figure(
+  image("../img/InstructionSet.png", width: 14cm),
+  caption: [HEIRV32 Instruction Set],
+) 
+
+
+
+Grâce à cette identification, l'unité de contrôle génère les signaux appropriés pour chaque bloc
+du circuit, détaillés dans la section suivante.
+
+=== Execute
+
+L'étape *execute* lance l'opération dans l'*ALU* selon les ordres fournis par l'unité de contrôle.
+Les sources des opérandes A et B de l'ALU sont sélectionnées par les multiplexeurs contrôlés
+par `ALUSrcA` et `ALUSrcB`.
+
+Pour les instructions de type R et I, l'ALU effectue directement l'opération arithmétique ou logique.
+Pour `beq`, elle calcule la différence `rs1 − rs2` afin de déterminer si les deux registres sont égaux
+via le flag *Zero*. Pour `lw` et `sw`, elle calcule l'adresse mémoire `rs1 + imm`.
+
+=== Memory Access
+
+L'étape *memory access* ne s'applique, dans cette implémentation, qu'à l'instruction `lw`. Elle
+utilise l'adresse calculée à l'étape précédente pour lire la valeur stockée en mémoire.
+
+=== Write Back
+
+L'étape *write back* enregistre la valeur résultante dans le registre de destination `rd`. La source
+du résultat est déterminée par le signal `resultSrc` :
+
+#pad(left: 1.5em)[
+  - `"00"` : résultat de l'ALU (instructions R, I)
+  - `"01"` : donnée lue en mémoire (instruction `lw`)
+  - `"10"` : résultat ALU bypassed (calcul `PC + 4`)
+]
+
+L'instruction `jal` ne passe pas par cette étape de la même manière : elle enregistre directement
+`PC + 4` comme adresse de retour dans `rd`, puis met à jour le PC avec l'adresse de saut calculée
+en *Decode*.
+
+= Circuit
 == Top Level
 La première étape du projet consiste à relier les différents composants du processeur entre eux. 
 Les différents signaux de contrôle provenant de l'unité de contrôle doivent être 
 correctement acheminés vers les différentes unités fonctionnelles du processeur, telles 
 que l'ALU, les registres, la mémoire, etc.
 
+#figure(
+  image("../img/TopLevel.PNG", width: 13cm),
+  caption: [Vue top-level du système HEIRV32 sur FPGA],
+)
+
 == Unité de contrôle
 L'unité de contrôle est le cœur du processeur, elle reçoit les instructions du programme
 et produit les signaux controlant l'état de tous les éléments du processeur.
+
+#figure(
+  image("../img/ControlUnit.PNG", width: 7cm),
+  caption: [Vue top-level du Control Unit],
+)
 
 === AluDecoder
 Ce bloc est chargé de décoder les instructions découlant du signal *AluOp* et de générer 
 les signaux de contrôle de l'ALU. Il prend également en compte les signaux *func3* et *func7*.
 
+#let code_sample = read("../img/aluDecoder_studentVersion.vhd")
+#figure(code()[
+  #raw(code_sample, lang: "vhdl")
+], caption: "Code VHDL AluDecoder")
+
+
 === InstrDecoder
 Ce bloc s'occupe de décoder les instructions provenant du signal *Op* et de produire 
 le signal de contrôle pour le bloc *extend*.
 
+
+#let code_sample = read("../img/InstrDecoder_studentVersion.vhd")
+#figure(code()[
+  #raw(code_sample, lang: "vhdl")
+], caption: "Code VHDL InstrDecoder")
+
+
 === Main FSM
-Cette unité génère les signaux de contrôle de tous les autres blocs du processeur.
+La *Main FSM* est le cœur de l'unité de contrôle. Elle orchestre les étapes du pipeline multi-cycle
+en générant les signaux de contrôle adéquats à chaque état.
+
+#figure(
+  image("../img/FSM.PNG", width: 16cm),
+  caption: [Main FSM],
+)
+
+== Signaux de contrôle
+
+La FSM génère les signaux suivants (valeur par défaut = `'0'` ou `"00"`) :
+
+#align(center)[
+#table(
+  columns: (auto, auto, auto),
+  [*Signal*], [*Taille*], [*Rôle*],
+  [`IRWrite`],   [`1 bit`],  [Autorise l'écriture du registre instruction],
+  [`PCUpdate`],  [`1 bit`],  [Mise à jour inconditionnelle du PC],
+  [`branch`],    [`1 bit`],  [Activation du branchement conditionnel (BEQ)],
+  [`AdrSrc`],    [`1 bit`],  [Sélection source adresse mémoire (0=PC, 1=ALU)],
+  [`MemWrite`],  [`1 bit`],  [Écriture mémoire],
+  [`regWrite`],  [`1 bit`],  [Écriture dans le fichier de registres],
+  [`ALUSrcA`],   [`2 bits`], [Source A de l'ALU (00=PC, 01=oldPC, 10=RS1)],
+  [`ALUSrcB`],   [`2 bits`], [Source B de l'ALU (00=RS2, 01=imm, 10=4)],
+  [`ALUOp`],     [`2 bits`], [Mode ALU (00=add, 01=sub, 10=instruction)],
+  [`resultSrc`], [`2 bits`], [Source du résultat (00=ALU, 01=mémoire, 10=oldALU)],
+)
+]
+
+== Opcodes des types d'instructions
+
+Les transitions depuis `Decode` sont déterminées par `op[6:0]` :
+
+#align(center)[
+#table(
+  columns: (auto, auto, auto),
+  [*Type*], [*`op[6:0]`*], [*Instructions*],
+  [R],   [`0110011`], [`add, sub, and, or, slt, xor, sll, srl`],
+  [I],   [`0010011`], [`addi, andi, ori, slti, xori, slli, srli`],
+  [LW],  [`0000011`], [`lw`],
+  [SW],  [`0100011`], [`sw`],
+  [BEQ], [`1100011`], [`beq`],
+  [JAL], [`1101111`], [`jal`],
+  [JALR],[`1100111`], [`jalr`],
+)
+]
+
+== Table de vérité de la FSM
+
+Chaque ligne correspond à un état et ses sorties associées.
+Les signaux non listés sont à leur valeur par défaut (`'0'`/`"00"`).
+
+#align(center)[
+#table(
+
+  columns: (auto, auto, auto, auto, auto, auto, auto, auto, auto, auto, auto),
+  [*État*],
+  [`IRW`], [`PCUpd`], [`br`], [`AdrSrc`],
+  [`MemW`], [`regW`],
+  [`ALUSrcA`], [`ALUSrcB`], [`ALUOp`], [`resultSrc`],
+
+  // Fetch
+  [*Fetch*],
+  [`1`],[`1`],[`0`],[`0`],
+  [`0`],[`0`],
+  [`00`],[`10`],[`00`],[`10`],
+
+  // Decode
+  [*Decode*],
+  [`0`],[`0`],[`0`],[`0`],
+  [`0`],[`0`],
+  [`01`],[`01`],[`00`],[`--`],
+
+  // ExecuteI
+  [*ExecuteI*],
+  [`0`],[`0`],[`0`],[`0`],
+  [`0`],[`0`],
+  [`10`],[`01`],[`10`],[`--`],
+
+  // ExecuteR
+  [*ExecuteR*],
+  [`0`],[`0`],[`0`],[`0`],
+  [`0`],[`0`],
+  [`10`],[`00`],[`10`],[`--`],
+
+  // ExecuteLW
+  [*ExecuteLW*],
+  [`0`],[`0`],[`0`],[`0`],
+  [`0`],[`0`],
+  [`10`],[`01`],[`00`],[`--`],
+
+  // ExecuteS
+  [*ExecuteS*],
+  [`0`],[`0`],[`0`],[`0`],
+  [`0`],[`0`],
+  [`10`],[`01`],[`00`],[`--`],
+
+  // ExecuteB
+  [*ExecuteB*],
+  [`0`],[`0`],[`1`],[`0`],
+  [`0`],[`0`],
+  [`10`],[`00`],[`01`],[`--`],
+
+  // ExecuteJ
+  [*ExecuteJ*],
+  [`0`],[`1`],[`0`],[`0`],
+  [`0`],[`0`],
+  [`01`],[`10`],[`00`],[`--`],
+
+  // ExecuteJalr
+  [*ExecuteJalr*],
+  [`0`],[`0`],[`0`],[`0`],
+  [`0`],[`0`],
+  [`10`],[`01`],[`11`],[`--`],
+
+  // WriteBackI
+  [*WriteBackI*],
+  [`0`],[`0`],[`0`],[`0`],
+  [`0`],[`1`],
+  [`--`],[`--`],[`--`],[`00`],
+
+  // WriteBackR
+  [*WriteBackR*],
+  [`0`],[`0`],[`0`],[`0`],
+  [`0`],[`1`],
+  [`--`],[`--`],[`--`],[`00`],
+
+  // MemAccess
+  [*MemAccess*],
+  [`0`],[`0`],[`0`],[`1`],
+  [`0`],[`0`],
+  [`--`],[`--`],[`--`],[`00`],
+
+  // WriteBackLW
+  [*WriteBackLW*],
+  [`0`],[`0`],[`0`],[`0`],
+  [`0`],[`1`],
+  [`--`],[`--`],[`--`],[`01`],
+
+  // WriteBackS
+  [*WriteBackS*],
+  [`0`],[`0`],[`0`],[`1`],
+  [`1`],[`0`],
+  [`--`],[`--`],[`--`],[`00`],
+
+  // WriteBackJ
+  [*WriteBackJ*],
+  [`0`],[`0`],[`0`],[`0`],
+  [`0`],[`1`],
+  [`--`],[`--`],[`--`],[`00`],
+)
+]
+_Légende :_ `IRW`=IRWrite, `PCUpd`=PCUpdate, `br`=branch, `MemW`=MemWrite, `regW`=regWrite.
+
+/*
+== Graphe de transitions
+
+Tous les états retournent à *Fetch* une fois terminés. Les transitions conditionnelles depuis
+*Decode* dépendent uniquement de `op[6:0]` :
+
+```
+Fetch ──► Decode
+Decode ──► ExecuteI    (op = 0010011)
+       ──► ExecuteR    (op = 0110011)
+       ──► ExecuteLW   (op = 0000011)
+       ──► ExecuteS    (op = 0100011)
+       ──► ExecuteB    (op = 1100011)
+       ──► ExecuteJ    (op = 1101111)
+       ──► ExecuteJalr (op = 1100111, via ExecuteJ → ExecuteJalr)
+
+ExecuteI   ──► WriteBackI  ──► Fetch
+ExecuteR   ──► WriteBackR  ──► Fetch
+ExecuteLW  ──► MemAccess ──► WriteBackLW ──► Fetch
+ExecuteS   ──► WriteBackS  ──► Fetch
+ExecuteB   ──► Fetch  (PCWrite conditionnel si Zero=1)
+ExecuteJ   ──► WriteBackJ  ──► Fetch
+ExecuteJalr──► WriteBackJ  ──► Fetch
+```
+*/
+
+== Table de décodage ALU
+
+#align(center)[
+#table(
+  columns: (auto, auto, auto, auto, auto),
+  [*ALUOp*], [*funct3*], [*Op5·funct7[5]*], [*Instruction*], [*ALUControl*],
+  [`00`], [`---`], [`--`], [lw, sw],             [`000` (add)],
+  [`01`], [`---`], [`--`], [beq],                [`001` (sub)],
+  [`10`], [`000`], [`0x, 10`], [add / addi],     [`000` (add)],
+  [`10`], [`000`], [`11`], [sub],                [`001` (sub)],
+  [`10`], [`001`], [`--`], [sll / slli],         [`110` (sll)],
+  [`10`], [`010`], [`--`], [slt / slti],         [`101` (slt)],
+  [`10`], [`100`], [`--`], [xor / xori],         [`100` (xor)],
+  [`10`], [`101`], [`x0`], [srl / srli],         [`111` (srl)],
+  [`10`], [`110`], [`--`], [or / ori],           [`011` (or)],
+  [`10`], [`111`], [`--`], [and / andi],         [`010` (and)],
+  [`11`], [`---`], [`--`], [jalr (addr step)],   [`000` (add)],
+)
+]
+
+== Table de décodage immédiat (Instr. Decoder)
+
+#align(center)[
+#table(
+  columns: (auto, auto, auto),
+  [*`op[6:0]`*], [*`immSrc`*], [*Type*],
+  [`0010011` / `0000011` / `1100111`], [`00`], [I],
+  [`0100011`],                          [`01`], [S],
+  [`1100011`],                          [`10`], [B],
+  [`1101111`],                          [`11`], [J],
+)
+]
+
+== Justification des choix d'implémentation
+
+=== JALR : deux étapes d'exécution
+
+`jalr` saute à `rs1 + imm`, contrairement à `jal` qui saute à `oldPC + imm`.
+Pendant le décodage, `rs1` n'est pas encore disponible en sortie du fichier de registres
+(la bascule interne le retarde d'un cycle). Il est donc impossible de calculer l'adresse de
+saut en *Decode* comme pour `jal`. La solution adoptée est l'ajout d'un état intermédiaire
+*ExecuteJalr* qui effectue le calcul `rs1 + imm`, puis *ExecuteJ* qui met à jour le PC
+et calcule `oldPC + 4`. `ALUOp = "11"` est utilisé pour forcer l'addition dans cet état
+sans passer par le décodage instruction.
+
+=== Signal `branch` vs `PCUpdate`
+
+La mise à jour du PC est séparée en deux chemins :
+- `PCUpdate` : mise à jour inconditionnelle (utilisée en Fetch pour PC+4, et en ExecuteJ).
+- `branch AND Zero` : mise à jour conditionnelle (BEQ uniquement, si les deux registres sont égaux).
+
+Ces deux signaux sont combinés via un OR : `PCWrite = PCUpdate OR (branch AND Zero)`.
+Cela évite d'avoir à gérer le flag `Zero` dans tous les états.
+
+=== `ALUSrcA = "01"` en Decode
+
+Pendant le décodage, l'ALU est utilisé pour pré-calculer l'adresse de saut `oldPC + imm`
+(utile pour BEQ et JAL). La source A est donc `oldPC` (valeur du PC avant l'incrément),
+maintenu dans une bascule dédiée mise à jour à chaque Fetch.
+
 
 = Simulation
 
-= Implémentation
+La simulation avec ModelSim a permis de corriger plusieurs erreurs, notamment sur les valeurs générées par l’unité de contrôle. En observant les états internes et les résultats des tests unitaires, nous avons pu identifier des défauts d’implémentation dans la machine d’états (FSM) : certaines transitions étaient mal conditionnées ou les signaux de sortie n’étaient pas mis à jour au bon moment. Ces anomalies ont pu être localisées puis corrigées.
 
-== Fonctions supplémentaires
-
-= Conclusion
-Ce
-
-/*
-#pagebreak()
-//
-// Modèle ci-dessous :
-//
-
-#align(center, block[
-#box(image("circuit_full_adder.png"), width: 45%, inset: (x: 3pt))  #box(image("circuit_full_adder.png"), width: 45%, inset: (x: 3pt))
-])
-
-= Introduction
-Écrire un rapport est un exercice autant *de fond que de forme*. Dans ce contexte, nous proposons dans ce document de quoi simplifier la rédaction de la forme sans avoir -- à priori -- d'avis sur le fond, ceci dans le contexte de la filière ISC#footnote[Voici d'ailleurs comment mettre une note de bas de page https://isc.hevs.ch].
-
-Il convient tout d'abord pour présenter le contenu de se rendre compte que ce système de mise en page permet d'utiliser une forme de _markdown_ comme entrée. Le _markdown_ est une manière de formatter des fichiers textes afin de pouvoir les transformer avec un programme afin de les afficher dans différents formats, comme PDF ou encore sous forme de page web.
-
-Le langage _markdown_ utilise différents types de balises permettant de faire du *gras*, de _l'italique_ ou encore du _*gras et de l'italique*_. Il est également possible de faire des listes, des tableaux, des images, des liens hypertextes, des notes de bas de page, des équations mathématiques comme $x^2 = 3$, des blocs de code comme par exemple `def hello()` et encore bien d'autres choses.
-
-Vous trouverez ici de la documentation sur la manière d'utiliser le langage `markdown` pour écrire des documents ici : https://www.markdownguide.org/basic-syntax/. Vous trouverez également une version spécifique sur l'écriture de documents en Typst ici https://typst.app/docs/reference/syntax/.
-
-En plus des choses simples montrées ci-dessus, le `markdown` simplifie la création de listes avec des nombres comme suit :
-
-+ Un élément
-+ Un autre élément de liste
-+ Encore d'autres éléments si nécessaire
-
-Des choses plus exotiques, comme mettre du #todo[texte mis en évidence] sont également possibles, tout comme les références à d'autres parties, comme dans le @intro[point].
-
-== Insertion de code
-
-Nous pouvons également avoir du `code brut directement en ligne` mais cela peut également être fait avec du code Scala comme par exemple dans ```scala def foo(x: Int)```. Cela n'empêche pas d'avoir des blocs de code joliment mis en forme également. Ainsi, lorsque l'on souhaite avoir du code inséré dans une figure, on peut également utiliser le package `sourcecode` qui rajoute notamment les numéros de ligne. En complément avec une `figure`, il est possible d'avoir une _légende_, un numéro de figure ainsi que du code centré :
-
-#figure(code()[
-```scala
-  def foo(val a : Any) : Int = {
-    a match :
-      case a: Int  => 12
-      case _ => 42
-  }
-  ```
-], caption: "Un tout petit listing en Scala")
-
-On peut si on le souhaite également avoir des blocs de code plus long si nécessaire, sur plusieurs pages :
-
-#figure(code()[
-```scala
-  object ImageProcessingApp_Animation extends App {
-    val imageFile = "./res/grace_hopper.jpg"
-
-    val org = new ImageGraphics(imageFile, "Original", -200, 0)
-    val dest2 = new ImageGraphics(imageFile, "Threshold", 200, 0)
-
-    var direction: Int = 1
-    var i = 1
-
-    while (true) {
-      if (i == 255 || i == 0)
-        direction *= -1
-
-      i = i + direction
-      dest2.setPixelsBW(ImageFilters_Solution.threshold(org.getPixelsBW(), i))
-    }
-  }
-  ```
-], caption: "Un autre exemple de code, plus long")
-
-=== Insérer du code à partir d'un fichier
-Il est tout à fait possible de mettre du code qui provient d'un fichier comme ci-dessous :
-
-#let code_sample = read("code/sample.scala")
-#figure(code()[
-  #raw(code_sample, lang: "scala")
-], caption: "Code included from the file `sample.scala`")
-
-== Insertion d'images
-
-Une image vaut souvent mieux que mille mots ! Il est possible d'ajouter des images, bien entendu. La syntaxe est relativement simple comme vous pouvez le voir dans l'exemple ci-dessous:
-
-#figure(image("figs/pixelize.png", height: 4cm), caption: [Grace Hopper, informaticienne américaine]) <fig_engineer>
-
-Pour le reste, voici un texte pour voir de quoi il retourne. Vous allez réaliser une fonction appelée _mean_ qui va appliquer un filtre de moyenne à l'image. Ce filtre a pour but de flouter l'image et d'enlever ainsi ses aspérités. Le principe est le suivant : la valeur d'un pixel est remplacée par la moyenne des pixels se trouvant dans une zone carrée de 3 par 3 pixels autour du pixel. Si on veut calculer la nouvelle valeur du pixel situé à la position $(x,y)$ selon la figure @fig_engineer, sa nouvelle valeur sera la moyenne des 9 valeurs affichées.
-
-La dérivée doit se calculer selon les deux axes. Le calcul est très simple : la dérivée selon `x` du pixel situé en $(x,y)$ vaut la valeur du pixel de droite $(x+1, y)$ moins la valeur du pixel de gauche $(x-1,y)$. Dans le cas de la figure, la dérivée selon $x$ vaut $D_x=234-255=-21$.
-
-De même, on peut calculer la dérivée selon $y$. Elle correspond au pixel du dessous $(x,y+1)$ moins le pixel $(x,y-1)$ du dessus. Dans le cas de la @fig_engineer, la dérivée selon $y$ vaut $D_y = 230-127 = 103$.
-
-La norme de la dérivée est calculée selon le théorème de Pythagore :
-
-$ D = sqrt(D_x^ 2 +D_y^2) $
-
-On peut également avoir des notations plus complexes :
-
-$ sum_(n=1)^(infinity) 2^(-n) = 1 "ou encore" integral_(x = 0)^3 x^2 dif x $
-
-#inc.showybox(
-  title: "Stokes' theorem",
-  frame: (
-    border-color: blue,
-    title-color: blue.lighten(30%),
-    body-color: blue.lighten(95%),
-    footer-color: blue.lighten(80%),
-  ),
-  // footer: "Information extracted from a well-known public encyclopedia"
-)[
-  Let $Sigma$ be a smooth oriented surface in $RR^3$ with boundary $diff Sigma equiv Gamma$. If a vector field $bold(F)(x,y,z)=(F_x (x,y,z), F_y (x,y,z), F_z (x,y,z))$ is defined and has continuous first order partial derivatives in a region containing $Sigma$, then
-
-  $ integral.double_Sigma (bold(nabla) times bold(F)) dot bold(Sigma) = integral.cont_(diff Sigma) bold(F) dot dif bold(Gamma) $
-]
-
-// You can create a new page with a pagebreak
-#pagebreak()
-
-== Des tables
-
-Il est possible d'insérer des tables simples :
-
-#figure(table(
-  align: left,
-  columns: 4,
-  stroke: none,
-  [*Monday*],
-  [11.5],
-  [13.0],
-  [4.0],
-  [*Tuesday*],
-  [8.0],
-  [14.5],
-  [5.0],
-  [*Wednesday*],
-  [9.0],
-  [18.5],
-  [13.0],
-), caption: "Une table simple")
-
-Des tables plus compliquées sont également possible. La page https://typst.app/docs/guides/table-guide/ donne d'ailleurs de bonnes informations.
-
-#set table(stroke: (x, y) => (left: if x > 0 { 0.8pt }, top: if y > 0 { 1.5pt }))
-
-#figure(table(
-  // Table with 3 columns and 3 rows
-  // There are 3 columns, the first one is twice as large as the two others
-  columns: (2fr, 1fr, 1fr),
-  align: center + horizon,
-  table.header[*Technique*][*Advantage*][*Drawback*],
-  [Diegetic],
-  [Immersive],
-  [May be contrived],
-  [Extradiegetic],
-  [Breaks immersion],
-  [Obstrusive],
-  [Omitted],
-  [Fosters engagement],
-  [May fracture audience],
-), caption: [Une table plus complexe])
-
-== Citer ses sources
-Il est important de citer les sources que l'on utilise. Par exemple, les deux travaux @mui_nasa_dod09, @mui_hybrid_06 et @mudry:133438 sont deux papiers très intéressants à lire et dont les références complètes se trouvent dans la bibliographie à la fin de ce document. Il est également d'utiliser des acronymes comme par exemple #acr("USB"). Si on l'utilise une deuxième fois, seul l'acronyme apparaît, ainsi #acr("USB") est suffisant.
-
-Si l'on souhaite citer des références issues d'une page ou d'un site web et que cette référence est importante, on utilisera la syntaxe @WinNT qui cite une référence de la bibliographie. Pour les autres cas, il est possible de référer au site uniquement avec son URL.
-
-== Un exemple de texte : le filtre de Sobel
-Une autre méthode pour extraire les contours à l'intérieur d'une image est d'utiliser #link("https://fr.wikipedia.org/wiki/Détection_de_contours")[l'algorithme de Sobel] Cette méthode est très similaire à celle de la dérivée, mais un peu plus compliquée et donne de meilleurs résultats.
-
-Pour l'exemple, la valeur du filtre de Sobel selon _x_ vaudrait :
-
-$ S_x= 100 + 2 dot 234 + 84 -128-2 dot 255-123=-109 $
-
-De même la valeur du filtre de Sobel selon _y_ vaudrait:
-
-$ S_y= 123+2 dot 230+84-128-2 dot 127-100 $
-
-Comme auparavant, la norme du filtre de Sobel se calcule selon Pythagore et vaut pour cet exemple :
-
-$ S = sqrt(S_x^2+S_y^2) = sqrt(109^2+185^2) =214.47 $
-
-== Problématique <intro>
-#lorem(20)
-
-== Plan du travail
-#lorem(40)
-
-#pagebreak()
-
-= Conclusion
-#lorem(500)
-
-#pagebreak()
-#the-bibliography(bib-file: "bibliography.bib", full: true, style: "ieee")
-
-//////////////
-// Appendices
-//////////////
-#pagebreak()
-#appendix-page()
-#pagebreak()
-
-// Table of acronyms, NOT COMPULSORY
-#print-index(
-  title: heavy-title(i18n(doc_language, "acronym-table-title"), mult:1, top:1em, bottom: 1em),
-  sorted: "up",
-  delimiter: " : ",
-  row-gutter: 0.7em,
-  outlined: false,
+#figure(
+  image("../img/sim.PNG", width: 16cm),
+  caption: [Simulation avec ModelSim],
 )
 
+= Implémentation
+Une fois le fonctionnement validé en simulation, le circuit et le code sont transférés sur la carte de développement FPGA.
+
+== Circuit HEIRV32
+
+À l’aide de l’outil Lattice Diamond, le circuit est compilé, prêt à être chargé sur la FPGA.
+
+Le circuit est d’abord testé avec le code préalablement chargé. Puis, après avoir vérifié le bon fonctionnement du circuit, nous pouvons passer à la création de notre propre code assembleur.
+
+== Code assembleur personnalisé
+Le code assembleur est chargé directement sur la carte micro-SD après avoir été compilé par le programme : HEIRV32-ASM_1.2.5. Ce dernier retourne un fichier `.`bin, prêt à être copié sur la carte, à partir de notre fichier assembleur `.c`
+
+Nous avons décidé de faire un code permettant d'afficher une chenille avec les LEDs.
+
+#let code_sample = read("../Programme Asm/codeCHENILLEEEE.s")
+#figure(code()[
+  #raw(code_sample, lang: "riscv")
+], caption: "Code Assembleur Chenille ")
+
+
+
+//== Fonctions supplémentaires
 #pagebreak()
+= Conclusion
+Ce projet avait pour objectif de concevoir et déployer un processeur RISC-V 32-bits réduit,
+l'*HEIRV32*, sur une carte FPGA, en implémentant une architecture multi-cycle.
 
-// Table of listings
-#table-of-figures()
+Dans un premier temps, les spécifications ont été définies :
 
-// Code inclusion
-#pagebreak()
-#code-samples()
+#pad(left: 1.5em)[
+  - *Matériel* : carte de développement FPGA EBS3 (Lattice LFE5U-25F), carte boutons/LEDs,
+    modules PMod d'extension
+  - *Outils logiciels* : HDL Designer pour la conception du circuit, ModelSim pour la simulation,
+    Lattice Diamond pour le déploiement sur FPGA
+  - *Fonctionnalités* : instructions minimales (R, I, `lw`, `sw`, `beq`, `jal`, `jalr`) et
+    fonctions supplémentaires (gestion des boutons, code personnalisé)
+]
 
-#let code_sample = read("code/sample.scala")
+La conception du processeur s'est articulée autour de deux axes. D'une part, la théorie du
+pipeline multi-cycle a guidé l'assemblage des blocs fournis : gestionnaire mémoire, fichier de
+registres, bloc d'extension, ALU et unité de contrôle. D'autre part, la *Main FSM* a été
+entièrement conçue et programmée pour orchestrer les signaux de contrôle à chaque étape du
+pipeline (Fetch → Decode → Execute → Memory Access → Write Back).
 
-#figure(code()[
-  #raw(code_sample, lang: "scala")
-], caption: "Code included from the file example.scala")
+La phase de simulation ModelSim a permis de valider le comportement du circuit instruction
+par instruction, en corrigeant les valeurs de l'unité de contrôle au fur et à mesure. Le code
+assembleur a quant à lui été développé et testé via l'interpréteur RISC-V en ligne et Ripes
+avant intégration.
 
-#figure(code()[
-  #raw(code_sample, lang: "scala")
-], caption: "Code included from the file example.scala")
+L'intégration sur FPGA a confirmé le bon fonctionnement global du système. Les points
+clés du bilan sont les suivants :
 
-#figure(code()[
-  #raw(read("code/sort.py"), lang: "python")
-], caption: "Code included from the file sort.py")
+#pad(left: 1.5em)[
+  - *Circuit* : le processeur HEIRV32 multi-cycle répond aux spécifications minimales et
+    s'exécute correctement sur la puce physique
+  - *Code assembleur* : les fonctions minimales et supplémentaires sont opérationnelles
+  - *Débogage* : la gestion des rebonds de boutons reste un point d'amélioration identifié ;
+    le filtrage logiciel représente une piste de résolution directe
+]
 
-// This is the end !
+L'objectif principal est atteint : un processeur RISC-V réduit, capable de charger
+et d'exécuter un programme assembleur personnalisé depuis une carte SD, a été conçu, simulé
+et déployé. Ce projet illustre concrètement le lien entre les concepts théoriques de l'architecture
+des ordinateurs et leur réalisation physique
+sur un circuit programmable.
