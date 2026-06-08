@@ -37,7 +37,7 @@ go_right:
     add   a1, zero, s3     # s3 = 5 (2^5 = 32) pour faire 65504 cycles de delay
     jal   ra, wait_buttons      # Attendre appui sur S1 pour incrémenter delay
     add   x30, zero, s0    # Allumer LED courante
-    add   a0, zero, s3     # s3 = 5 (2^5 = 32) pour faire 65504 cycles de delay
+    add   s3, zero, a0     # s3 = 5 (2^5 = 32) pour faire 65504 cycles de delay
     jal   ra, delay        # Attendre 65k cycles
 
     slli  s0, s0, 1        # Décaler vers la gauche
@@ -58,7 +58,7 @@ go_left:
     add   a1, zero, s3     # s3 = 5 (2^5 = 32) pour faire 65504 cycles de delay
     jal   ra, wait_buttons      # Attendre appui sur S1 pour incrémenter delay
     add   x30, zero, s0    # Allumer LED courante
-    add   a0, zero, s3     # s3 = 5 (2^5 = 32) pour faire 65504 cycles de delay
+    add   s3, zero, a0     # s3 = 5 (2^5 = 32) pour faire 65504 cycles de delay
     jal   ra, delay        # Attendre 65k cycles
 
     srli  s0, s0, 1        # Décaler vers la droite
@@ -66,10 +66,10 @@ go_left:
 
     sub   t2, s2, s1       # t2 = 8 - compteur
 
-    beq   t2, zero, end_chenille # Si t2 == 0 : Arrêter à LED0 (8 décalages)
+    beq   t2, zero, end_prog # Si t2 == 0 : Arrêter à LED0 (8 décalages)
     jal   zero, go_left
 
-end_chenille:
+end_prog:
     add   x30, zero, zero  # Éteindre toutes les LEDs
 
     lw    ra, 0(sp)        # return address = sp(0)
@@ -85,7 +85,7 @@ delay:
     sw    ra, 0(sp)			# Sauvegarder return address sur la pile
 
     # Charger 65504 dans t3
-	addi t3, t3, 0x7ff      # Charger 2047 sur t3
+	addi t3, zero, 0x7ff      # Charger 2047 sur t3
 	sll t3, t3, a0          # t3 = t3 * 2^(a0) (=65504)
 
 delayloop:
@@ -106,14 +106,31 @@ delay_done:
 #  incrémenter/décrémenter longueur de delay
 # ============================================================
 wait_buttons:
-    andi  t0, x31, 2         # Isoler bit 1 (bouton S1)
-    beq   t0, zero, end_wait_buttons # while t0 == 0, goto wait_buttons
+    addi  sp, sp, -4
+    sw    ra, 0(sp)			# Sauvegarder return address sur la pile
+
+    add   a0, zero, a1
+
+    andi  t0, x31, 2         # Isoler bit 1 (bouton S2)
+    beq   t0, zero, check_s1 # while t0 == 0, goto check_s1
 
     # if t0 == 1 : incrémenter delay
-    addi a0, zero, a1
+    add   a0, zero, a1
     jal   ra, incr_delay
+    jal   zero, end_wait_buttons
+
+check_s1:
+    andi  t0, x31, 1         # Isoler bit 0 (bouton S1)
+    beq   t0, zero, end_wait_buttons # while t0 == 0, goto wait_buttons
+
+    # if t0 == 1 : décrémenter delay
+    blez s3, end_wait_buttons # Si s3 <= 0, ne pas décrémenter
+    add a0, zero, a1
+    jal   ra, decr_delay
 
     end_wait_buttons:
+    lw    ra, 0(sp)          # return address = sp(0)
+    addi  sp, sp, 4          # sp back to origin
     jalr zero, ra, 0         # jump back to ra
 
 incr_delay:
