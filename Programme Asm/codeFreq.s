@@ -4,18 +4,24 @@
 # ============================================================
 
 _start:
-	addi sp, sp, 0x500        # Stack base address == 0x500
+	addi sp, zero, 0x500        # Stack base address == 0x500
     # Attends appui sur S1 (bit 1 de x31) ----
+    # Initialiser s3 à 5
+    addi  s3, zero, 5      # s3 = 5 (2^5 = 32) pour faire 65504 cycles de delay
+    addi  s4, zero, 0       # stop flag = 0
+
 wait_s1:
     andi  t0, x31, 1         # Isoler bit 0 (bouton S1)
-    # beq   t0, zero, _start   # attendre que S1 soit relâché avant de recommencer
     beq   t0, zero, wait_s1  # while t0 == 0, goto wait_s1
 
-    # if t0 == 1 : Lancer la chenille
-    jal   ra, chenille
+release_s1:
+    andi  t0, x31, 1
+    beq   t0, zero, done_release    # wait for release
+    jal   zero, release_s1
+done_release:
 
-    # Retour attente S1
-    jal   zero, _start     # goto _start
+    jal   ra, chenille
+    jal   zero, _start
 
 # ============================================================
 #  chenille : LED0→LED7 puis LED7→LED0, aller-retour
@@ -25,9 +31,6 @@ chenille:
     addi  sp, sp, -4
     sw    ra, 0(sp)        # Sauvegarder return address sur la pile
 
-    # Initialiser s3 à 5
-    addi  s3, zero, 5      # s3 = 5 (2^5 = 32) pour faire 65504 cycles de delay
-
     # Aller : LED0 → LED7
     addi  s0, zero, 1      # s0 = masque courant (LED0 = bit 0)
     addi  s1, zero, 0      # s1 = 0 -- Compteur
@@ -36,8 +39,13 @@ chenille:
 go_right:
     add   a1, zero, s3     # s3 = 5 (2^5 = 32) pour faire 65504 cycles de delay
     jal   ra, wait_buttons      # Attendre appui sur S1 pour incrémenter delay
+
+    beq   s4, zero, not_stopped_right    # Si stop flag = 1, arrêter la chenille
+    jal   zero, end_prog           # else stop
+    not_stopped_right:
+
     add   x30, zero, s0    # Allumer LED courante
-    add   a0, zero, s3     # s3 = 5 (2^5 = 32) pour faire 65504 cycles de delay
+    add   s3, zero, a0     # s3 = 5 (2^5 = 32) pour faire 65504 cycles de delay
     jal   ra, delay        # Attendre 65k cycles
 
     slli  s0, s0, 1        # Décaler vers la gauche
@@ -57,8 +65,13 @@ go_left_init:
 go_left:
     add   a1, zero, s3     # s3 = 5 (2^5 = 32) pour faire 65504 cycles de delay
     jal   ra, wait_buttons      # Attendre appui sur S1 pour incrémenter delay
+
+    beq   s4, zero, not_stopped_left    # Si stop flag = 1, arrêter la chenille
+    jal   zero, end_prog           # else stop
+    not_stopped_left:
+
     add   x30, zero, s0    # Allumer LED courante
-    add   a0, zero, s3     # s3 = 5 (2^5 = 32) pour faire 65504 cycles de delay
+    add   s3, zero, a0     # s3 = 5 (2^5 = 32) pour faire 65504 cycles de delay
     jal   ra, delay        # Attendre 65k cycles
 
     srli  s0, s0, 1        # Décaler vers la droite
@@ -66,10 +79,10 @@ go_left:
 
     sub   t2, s2, s1       # t2 = 8 - compteur
 
-    beq   t2, zero, end_chenille # Si t2 == 0 : Arrêter à LED0 (8 décalages)
+    beq   t2, zero, end_prog # Si t2 == 0 : Arrêter à LED0 (8 décalages)
     jal   zero, go_left
 
-end_chenille:
+end_prog:
     add   x30, zero, zero  # Éteindre toutes les LEDs
 
     lw    ra, 0(sp)        # return address = sp(0)
@@ -85,7 +98,7 @@ delay:
     sw    ra, 0(sp)			# Sauvegarder return address sur la pile
 
     # Charger 65504 dans t3
-	addi t3, t3, 0x7ff      # Charger 2047 sur t3
+	addi t3, zero, 0x7ff      # Charger 2047 sur t3
 	sll t3, t3, a0          # t3 = t3 * 2^(a0) (=65504)
 
 delayloop:
@@ -95,7 +108,6 @@ delayloop:
 
 	jal zero, delayloop      # loop back to delayloopss
 	
-
 delay_done:
     lw    ra, 0(sp)          # return address = sp(0)
     addi  sp, sp, 4          # sp back to origin
@@ -106,14 +118,50 @@ delay_done:
 #  incrémenter/décrémenter longueur de delay
 # ============================================================
 wait_buttons:
-    andi  t0, x31, 2         # Isoler bit 1 (bouton S1)
-    beq   t0, zero, end_wait_buttons # while t0 == 0, goto wait_buttons
+    addi  sp, sp, -4
+    sw    ra, 0(sp)			# Sauvegarder return address sur la pile
+
+    # Stop button S3
+    andi  t0, x31, 4         # Isoler bit 2 (bouton S3)
+    beq   t0, zero, no_stop  # while S3 not pressed, keep running chenille
+    addi  s4, zero, 1
+
+no_stop:
+    add   a0, zero, a1
+
+    andi  t0, x31, 2         # Isoler bit 1 (bouton S2)
+    beq   t0, zero, check_s1 # while t0 == 0, goto check_s1
 
     # if t0 == 1 : incrémenter delay
-    addi a0, zero, a1
+    add   a0, zero, a1
     jal   ra, incr_delay
 
+wait_release_s2:
+    andi  t0, x31, 2
+    beq   t0, zero, done_release_s2
+    jal   zero, wait_release_s2
+done_release_s2:
+    jal   zero, end_wait_buttons
+
+check_s1:
+    andi  t0, x31, 1         # Isoler bit 0 (bouton S1)
+    beq   t0, zero, end_wait_buttons # while t0 == 0, goto wait_buttons
+
+    # if t0 == 1 : décrémenter delay
+    beq s3, zero, end_wait_buttons # Si s3 == 0, ne pas décrémenter
+
+    add a0, zero, a1
+    jal   ra, decr_delay
+
+wait_release_s1:
+    andi  t0, x31, 1
+    beq   t0, zero, done_release_s1
+    jal   zero, wait_release_s1
+done_release_s1:
+
     end_wait_buttons:
+    lw    ra, 0(sp)          # return address = sp(0)
+    addi  sp, sp, 4          # sp back to origin
     jalr zero, ra, 0         # jump back to ra
 
 incr_delay:
