@@ -40,9 +40,9 @@ go_right:
     add   a1, zero, s3     # s3 = 5 (2^5 = 32) pour faire 65504 cycles de delay
     jal   ra, wait_buttons      # Attendre appui sur S1 pour incrémenter delay
 
-    beq   s4, zero, not_stopped    # Si stop flag = 1, arrêter la chenille
+    beq   s4, zero, not_stopped_right    # Si stop flag = 1, arrêter la chenille
     jal   zero, end_prog           # else stop
-    not_stopped:
+    not_stopped_right:
 
     add   x30, zero, s0    # Allumer LED courante
     add   s3, zero, a0     # s3 = 5 (2^5 = 32) pour faire 65504 cycles de delay
@@ -66,9 +66,9 @@ go_left:
     add   a1, zero, s3     # s3 = 5 (2^5 = 32) pour faire 65504 cycles de delay
     jal   ra, wait_buttons      # Attendre appui sur S1 pour incrémenter delay
 
-    beq   s4, zero, not_stopped   # Si stop flag = 1, arrêter la chenille
+    beq   s4, zero, not_stopped_left    # Si stop flag = 1, arrêter la chenille
     jal   zero, end_prog           # else stop
-    not_stopped:
+    not_stopped_left:
 
     add   x30, zero, s0    # Allumer LED courante
     add   s3, zero, a0     # s3 = 5 (2^5 = 32) pour faire 65504 cycles de delay
