@@ -11,9 +11,11 @@ wait_s1:
     # beq   t0, zero, _start   # attendre que S1 soit relâché avant de recommencer
     beq   t0, zero, wait_s1  # while t0 == 0, goto wait_s1
 
-    release_s1:
+release_s1:
     andi  t0, x31, 1
-    bne   t0, zero, release_s1    # wait for release
+    beq   t0, zero, done_release    # wait for release
+    jal   zero, release_s1
+done_release:
     jal   ra, chenille
     jal   zero, _start
 
@@ -123,7 +125,9 @@ wait_buttons:
 
 wait_release_s2:
     andi  t0, x31, 2
-    bne   t0, zero, wait_release_s2
+    beq   t0, zero, done_release_s2
+    jal   zero, wait_release_s2
+done_release_s2:
     jal   zero, end_wait_buttons
 
 check_s1:
@@ -138,7 +142,9 @@ check_s1:
 
 wait_release_s1:
     andi  t0, x31, 1
-    bne   t0, zero, wait_release_s1
+    beq   t0, zero, done_release_s1
+    jal   zero, wait_release_s1
+done_release_s1:
 
     end_wait_buttons:
     lw    ra, 0(sp)          # return address = sp(0)
