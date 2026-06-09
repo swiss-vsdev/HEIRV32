@@ -4,11 +4,13 @@
 # ============================================================
 
 _start:
-	addi sp, sp, 0x500        # Stack base address == 0x500
+	addi sp, zero, 0x500        # Stack base address == 0x500
     # Attends appui sur S1 (bit 1 de x31) ----
+    # Initialiser s3 à 5
+    addi  s3, zero, 5      # s3 = 5 (2^5 = 32) pour faire 65504 cycles de delay
+
 wait_s1:
     andi  t0, x31, 1         # Isoler bit 0 (bouton S1)
-    # beq   t0, zero, _start   # attendre que S1 soit relâché avant de recommencer
     beq   t0, zero, wait_s1  # while t0 == 0, goto wait_s1
 
 release_s1:
@@ -16,11 +18,20 @@ release_s1:
     beq   t0, zero, done_release    # wait for release
     jal   zero, release_s1
 done_release:
-    jal   ra, chenille
-    jal   zero, _start
 
-    # Retour attente S1
-    jal   zero, _start     # goto _start
+wait_s3:
+    jal   ra, chenille
+    # Stop button S3
+    andi  t0, x31, 4         # Isoler bit 2 (bouton S3)
+    beq   t0, zero, wait_s3  # while S3 not pressed, keep running chenille
+
+release_s3:
+    andi  t0, x31, 4         # Isoler bit 2 (bouton S3)
+    beq   t0, zero, done_release    # wait for release
+    jal   zero, release_s3
+done_release:
+
+    jal   zero, _start
 
 # ============================================================
 #  chenille : LED0→LED7 puis LED7→LED0, aller-retour
@@ -29,9 +40,6 @@ done_release:
 chenille:
     addi  sp, sp, -4
     sw    ra, 0(sp)        # Sauvegarder return address sur la pile
-
-    # Initialiser s3 à 5
-    addi  s3, zero, 5      # s3 = 5 (2^5 = 32) pour faire 65504 cycles de delay
 
     # Aller : LED0 → LED7
     addi  s0, zero, 1      # s0 = masque courant (LED0 = bit 0)
