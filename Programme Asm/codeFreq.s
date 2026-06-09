@@ -11,8 +11,11 @@ wait_s1:
     # beq   t0, zero, _start   # attendre que S1 soit relâché avant de recommencer
     beq   t0, zero, wait_s1  # while t0 == 0, goto wait_s1
 
-    # if t0 == 1 : Lancer la chenille
+    release_s1:
+    andi  t0, x31, 1
+    bne   t0, zero, release_s1    # wait for release
     jal   ra, chenille
+    jal   zero, _start
 
     # Retour attente S1
     jal   zero, _start     # goto _start
@@ -117,6 +120,10 @@ wait_buttons:
     # if t0 == 1 : incrémenter delay
     add   a0, zero, a1
     jal   ra, incr_delay
+
+wait_release_s2:
+    andi  t0, x31, 2
+    bne   t0, zero, wait_release_s2
     jal   zero, end_wait_buttons
 
 check_s1:
@@ -124,9 +131,14 @@ check_s1:
     beq   t0, zero, end_wait_buttons # while t0 == 0, goto wait_buttons
 
     # if t0 == 1 : décrémenter delay
-    beq s3, zero, end_wait_buttons # Si s3 <= 0, ne pas décrémenter
+    beq s3, zero, end_wait_buttons # Si s3 == 0, ne pas décrémenter
+
     add a0, zero, a1
     jal   ra, decr_delay
+
+wait_release_s1:
+    andi  t0, x31, 1
+    bne   t0, zero, wait_release_s1
 
     end_wait_buttons:
     lw    ra, 0(sp)          # return address = sp(0)
