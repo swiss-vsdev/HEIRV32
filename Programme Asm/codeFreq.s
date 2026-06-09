@@ -124,7 +124,7 @@ check_s1:
     beq   t0, zero, end_wait_buttons # while t0 == 0, goto wait_buttons
 
     # if t0 == 1 : décrémenter delay
-    blez s3, end_wait_buttons # Si s3 <= 0, ne pas décrémenter
+    beq s3, zero, end_wait_buttons # Si s3 <= 0, ne pas décrémenter
     add a0, zero, a1
     jal   ra, decr_delay
 
