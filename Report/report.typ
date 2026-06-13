@@ -40,7 +40,7 @@ un processeur RISC-V 32 bits, simulé sous ModelSim puis
 déployé physiquement sur une carte FPGA EBS 3.
 
 Le travail couvre trois points principaux : la conception du chemin de données en VHDL,
-l'implémentation des l'unités de contrôle (FSM, décodeur ALU, décodeur d'instruction), et l'écriture
+l'implémentation de l'unité de contrôle (FSM, décodeur ALU, décodeur d'instruction), et l'écriture
 d'un programme en assembleur HEIRV32 exploitant les boutons et les LEDs de la carte d'extension.
 
 = Objectif du laboratoire
@@ -49,8 +49,8 @@ type RISC-V. Nous allons essentiellement nous concentrer sur la conception de l'
 contrôle. Nous allons également implémenter un ensemble d'instructions 
 de base pour permettre au processeur d'exécuter des programmes simples.
 
-La partie matérielle comprend une carte de développement FPGA ainsi que
-plusieurs boutons et LEDs pour interagir avec le processeur nous est fournie.
+La partie matérielle, comprenant une carte de développement FPGA ainsi que
+plusieurs boutons et LEDs pour interagir avec le processeur, nous est fournie.
 
 La deuxième partie du projet consistera à créer un programme en assembleur qui sera exécuté
 sur notre processeur, et qui permttra de tester les différentes fonctionnalités que nous avons implémentées.
@@ -72,7 +72,7 @@ Le système EBS3 repose sur trois platines : une motherboard, une daughterboard 
 
 == Motherboard (EBS3)
 
-La carte mère expose les interfaces vers le monde extérieur :
+La carte mère (@fig_motherboard) expose les interfaces vers le monde extérieur :
 
 - 4 connecteurs *PMod* 
 - 2 ports parallèles
@@ -84,10 +84,10 @@ La carte mère expose les interfaces vers le monde extérieur :
 #figure(
   image("../img/Motherboard.png", width: 7cm),
   caption: [Carte Mère],
-) 
+)<fig_motherboard>
 == Daughterboard (LFE5U-25F)
 
-La carte fille héberge le FPGA et ses périphériques directs. Elle se connecte à la motherboard via un connecteur *SODIMM-200*.
+La carte fille (@fig_daughterboard) héberge le FPGA et ses périphériques directs. Elle se connecte à la motherboard via un connecteur *SODIMM-200*.
 
 #align(center)[
 #table(
@@ -119,11 +119,11 @@ Deux boutons sont disponibles sur la daughterboard :
 #figure(
   image("../img/Daughter.png", width: 8cm),
   caption: [Carte Fille],
-) 
+)<fig_daughterboard>
 
 == Carte boutons et LEDs
 
-Cette carte fille secondaire est connectée à la motherboard. Elle possède *4 boutons* et *8 LEDs*, reliés directement aux registres du processeur RISC-V :
+Cette carte fille secondaire (@fig_buttonledmodule) est connectée à la motherboard. Elle possède *4 boutons* et *8 LEDs*, reliés directement aux registres du processeur RISC-V :
 
 - x30 : registre d'écriture des LEDs (bit 0 = LED 0, bit 1 = LED 1, …)
 - x31 : registre de lecture des boutons (lecture seule ; bit 0 = S1, bit 1 = S2, …)
@@ -131,9 +131,12 @@ Cette carte fille secondaire est connectée à la motherboard. Elle possède *4 
 #figure(
   image("../img/LED.png", width: 7cm),
   caption: [Carte boutons et LEDs],
-) 
+)<fig_buttonledmodule>
 
 == Boards supplémentaires
+En plus de la carte de base, plusieurs modules d'extension sont disponibles pour ajouter
+des fonctionnalités supplémentaires au projet. Deux modules équipés de 8 LEDs chacun (@fig_ledmodule) étaient
+également à notre disposition, mais nous avons choisi de ne pas les utiliser.
 #align(center)[
 #table(
   columns: (auto, auto),
@@ -148,7 +151,7 @@ Cette carte fille secondaire est connectée à la motherboard. Elle possède *4 
 #figure(
   image("../img/LedMod.png", width: 4cm),
   caption: [Carte supplémentaire LEDs],
-) 
+)<fig_ledmodule>
 
 = Outils
 == HDL Designer
@@ -192,7 +195,7 @@ construit comme suit :
   + *Write Back* : enregistrement du résultat dans le registre de destination (sauf `jal`)
 ]
 
-Toutes les instructions ne nécessitant pas l'exécution de chaque étape, ces dernières peuvent être
+Toutes les instructions ne nécessitent pas l'exécution de chaque étape, ces dernières peuvent être
 dissociées, séparées par un coup d'horloge. Les instructions les plus
 courtes ne nécessitant que 3 à 4 étapes bénéficieront d'un traitement plus rapide. 
 
@@ -202,12 +205,12 @@ Le *fetch* correspond à la récupération de l'instruction depuis la mémoire. 
 est l'`instructionDataManagerSDCard`. Il accède à la mémoire grâce au *Program Counter* (*PC*),
 une variable maintenant la position courante dans la mémoire du programme.
 
-L'instruction récupérée est sous forme binaire sur 32 bits. Par exemple :
+L'instruction récupérée est sous forme binaire sur 32 bits, comme démontré dans la @fig_binarycode :
 
 #figure(
   image("../img/machinecode.png", width: 14cm),
   caption: [Code binaire d'une instruction],
-) 
+) <fig_binarycode>
 
 En parallèle du chargement de l'instruction, un ALU séparé est utilisé pendant le Fetch pour calculer
 l'adresse suivante `PC + 4`.
@@ -228,14 +231,12 @@ Les champs extraits sont :
   - *`imm`* : valeur immédiate, dont la position varie selon le type d'instruction
 ]
 
-La répartition de ces champs par type d'instruction est la suivante :
+La répartition de ces champs par type d'instruction est définie dans la @fig_instructionset :
 
 #figure(
   image("../img/InstructionSet.png", width: 14cm),
   caption: [HEIRV32 Instruction Set],
-) 
-
-
+)<fig_instructionset>
 
 Grâce à cette identification, l'unité de contrôle génère les signaux appropriés pour chaque bloc
 du circuit, détaillés dans la section suivante.
@@ -272,54 +273,57 @@ en *Decode*.
 
 = Circuit
 == Top Level
-La première étape du projet consiste à relier les différents composants du processeur entre eux. 
+La première étape du projet consiste à relier les différents composants du processeur entre eux (@fig_toplevel). 
 Les différents signaux de contrôle provenant de l'unité de contrôle doivent être 
 correctement acheminés vers les différentes unités fonctionnelles du processeur, telles 
 que l'ALU, les registres, la mémoire, etc.
 
 #figure(
-  image("../img/TopLevel.PNG", width: 13cm),
+  image("../img/TopLevel.PNG", width: 17cm),
   caption: [Vue top-level du système HEIRV32 sur FPGA],
-)
+)<fig_toplevel>
 
 == Unité de contrôle
-L'unité de contrôle est le cœur du processeur, elle reçoit les instructions du programme
+L'unité de contrôle, présentée dans la @fig_controlunit, est le cœur du processeur, elle reçoit les instructions du programme
 et produit les signaux controlant l'état de tous les éléments du processeur.
 
 #figure(
   image("../img/ControlUnit.PNG", width: 7cm),
   caption: [Vue top-level du Control Unit],
-)
+)<fig_controlunit>
 
 === AluDecoder
-Ce bloc est chargé de décoder les instructions découlant du signal *AluOp* et de générer 
-les signaux de contrôle de l'ALU. Il prend également en compte les signaux *func3* et *func7*.
+Le bloc  de la @fig_aludecoder est chargé de décoder les instructions découlant du signal *AluOp* et de générer 
+les signaux de contrôle de l'ALU. Il prend également en compte les signaux *func3* et *func7*, comme démontré dans le @fig_aludecodercode.
+#figure(
+  image("../img/AluDecoder.PNG", width: 7cm),
+  caption: [AluDecoder, situé dans l'unité de contrôle],
+)<fig_aludecoder>
 
 #let code_sample = read("../img/aluDecoder_studentVersion.vhd")
 #figure(code()[
   #raw(code_sample, lang: "vhdl")
-], caption: "Code VHDL AluDecoder")
+], caption: "Code VHDL AluDecoder")<fig_aludecodercode>
 
 
 === InstrDecoder
-Ce bloc s'occupe de décoder les instructions provenant du signal *Op* et de produire 
+Ce bloc, décrit par le @fig_instrdecoder, s'occupe de décoder les instructions provenant du signal *Op* et de produire 
 le signal de contrôle pour le bloc *extend*.
 
 
 #let code_sample = read("../img/InstrDecoder_studentVersion.vhd")
 #figure(code()[
   #raw(code_sample, lang: "vhdl")
-], caption: "Code VHDL InstrDecoder")
+], caption: "Code VHDL InstrDecoder")<fig_instrdecoder>
 
 
 === Main FSM
-La *Main FSM* est le cœur de l'unité de contrôle. Elle orchestre les étapes du pipeline multi-cycle
-en générant les signaux de contrôle adéquats à chaque état.
+La *Main FSM* (@fig_fsm) est le cœur de l'unité de contrôle. Elle orchestre les étapes du pipeline multi-cycle en générant les signaux de contrôle adéquats à chaque état.
 
 #figure(
   image("../img/FSM.PNG", width: 16cm),
   caption: [Main FSM],
-)
+)<fig_fsm>
 
 == Signaux de contrôle
 
