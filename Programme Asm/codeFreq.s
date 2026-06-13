@@ -7,7 +7,7 @@ _start:
 	addi sp, zero, 0x500        # Stack base address == 0x500
     # Attends appui sur S1 (bit 1 de x31) ----
     # Initialiser s3 à 5
-    addi  s3, zero, 5      # s3 = 5 (2^5 = 32) pour faire 65504 cycles de delay
+    addi  s3, zero, 5      # s3 = 5, variable pour la vitesse de la chenille
     addi  s4, zero, 0       # stop flag = 0
 
 wait_s1:
@@ -20,7 +20,9 @@ release_s1:
     jal   zero, release_s1
 done_release:
 
+run_loop:
     jal   ra, chenille
+    beq   s4, zero, run_loop
     jal   zero, _start
 
 # ============================================================

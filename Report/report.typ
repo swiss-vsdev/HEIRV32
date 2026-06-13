@@ -577,7 +577,7 @@ Le code assembleur est chargé directement sur la carte micro-SD après avoir é
 
 Nous avons décidé de faire un code permettant d'afficher une chenille avec les LEDs.
 
-#let code_sample = read("../Programme Asm/codeCHENILLEEEE.s")
+#let code_sample = read("../Programme Asm/codeFreq.s")
 #figure(code()[
   #raw(code_sample, lang: "riscv")
 ], caption: "Code Assembleur Chenille ")
