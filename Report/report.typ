@@ -292,7 +292,7 @@ et produit les signaux controlant l'état de tous les éléments du processeur.
   caption: [Vue top-level du Control Unit],
 )<fig_controlunit>
 
-=== AluDecoder
+=== AluDecoder <title_aludecoder>
 Le bloc  de la @fig_aludecoder est chargé de décoder les instructions découlant du signal *AluOp* et de générer 
 les signaux de contrôle de l'ALU. Il prend également en compte les signaux *func3* et *func7*, comme démontré dans le @fig_aludecodercode.
 #figure(
@@ -327,9 +327,9 @@ La *Main FSM* (@fig_fsm) est le cœur de l'unité de contrôle. Elle orchestre l
 
 == Signaux de contrôle
 
-La FSM génère les signaux suivants (valeur par défaut = `'0'` ou `"00"`) :
-
-#align(center)[
+La FSM génère les signaux détaillés dans la @fig_fsm_signals (valeur par défaut = `'0'` ou `"00"`) :
+#figure(
+align(center)[
 #table(
   columns: (auto, auto, auto),
   [*Signal*], [*Taille*], [*Rôle*],
@@ -344,13 +344,13 @@ La FSM génère les signaux suivants (valeur par défaut = `'0'` ou `"00"`) :
   [`ALUOp`],     [`2 bits`], [Mode ALU (00=add, 01=sub, 10=instruction)],
   [`resultSrc`], [`2 bits`], [Source du résultat (00=ALU, 01=mémoire, 10=oldALU)],
 )
-]
+], caption: [Signaux de contrôle générés par la FSM]
+)<fig_fsm_signals>
 
 == Opcodes des types d'instructions
-
-Les transitions depuis `Decode` sont déterminées par `op[6:0]` :
-
-#align(center)[
+Les transitions depuis `Decode` sont déterminées par `op[6:0]` dans la @fig_opcodes::
+#figure(
+align(center)[
 #table(
   columns: (auto, auto, auto),
   [*Type*], [*`op[6:0]`*], [*Instructions*],
@@ -362,16 +362,16 @@ Les transitions depuis `Decode` sont déterminées par `op[6:0]` :
   [JAL], [`1101111`], [`jal`],
   [JALR],[`1100111`], [`jalr`],
 )
-]
+], caption: [Opcodes des types d'instructions]
+)<fig_opcodes>
 
 == Table de vérité de la FSM
 
-Chaque ligne correspond à un état et ses sorties associées.
+Chaque ligne de la @fig_truth_fsm correspond à un état et ses sorties associées.
 Les signaux non listés sont à leur valeur par défaut (`'0'`/`"00"`).
-
-#align(center)[
+#figure(
+align(center)[
 #table(
-
   columns: (auto, auto, auto, auto, auto, auto, auto, auto, auto, auto, auto),
   [*État*],
   [`IRW`], [`PCUpd`], [`br`], [`AdrSrc`],
@@ -468,7 +468,8 @@ Les signaux non listés sont à leur valeur par défaut (`'0'`/`"00"`).
   [`0`],[`1`],
   [`--`],[`--`],[`--`],[`00`],
 )
-]
+], caption: [Table de vérité de la FSM]
+)<fig_truth_fsm>
 _Légende :_ `IRW`=IRWrite, `PCUpd`=PCUpdate, `br`=branch, `MemW`=MemWrite, `regW`=regWrite.
 
 /*
@@ -498,8 +499,9 @@ ExecuteJalr──► WriteBackJ  ──► Fetch
 */
 
 == Table de décodage ALU
-
-#align(center)[
+La @fig_aludecodertable correspond au code que l'on retrouve au @title_aludecoder :
+#figure(
+align(center)[
 #table(
   columns: (auto, auto, auto, auto, auto),
   [*ALUOp*], [*funct3*], [*Op5·funct7[5]*], [*Instruction*], [*ALUControl*],
@@ -515,11 +517,13 @@ ExecuteJalr──► WriteBackJ  ──► Fetch
   [`10`], [`111`], [`--`], [and / andi],         [`010` (and)],
   [`11`], [`---`], [`--`], [jalr (addr step)],   [`000` (add)],
 )
-]
+], caption: [Table de décodage de l'ALU]
+)<fig_aludecodertable>
 
 == Table de décodage immédiat (Instr. Decoder)
-
-#align(center)[
+L'opcode indique le format de l'immédiat via le signal `immSrc` au bloc d'extension immédiate, afin que ce dernier puisse le reconstituer correctement avant de l'étendre à 32 bits.
+#figure(
+align(center)[
 #table(
   columns: (auto, auto, auto),
   [*`op[6:0]`*], [*`immSrc`*], [*Type*],
@@ -528,7 +532,8 @@ ExecuteJalr──► WriteBackJ  ──► Fetch
   [`1100011`],                          [`10`], [B],
   [`1101111`],                          [`11`], [J],
 )
-]
+], caption: [Table de décodage du signal envoyé à l'extension immédiate]
+)<fig_immdecoder>
 
 == Justification des choix d'implémentation
 
@@ -577,15 +582,26 @@ Une fois le fonctionnement validé en simulation, le circuit et le code sont tra
 Le circuit est d’abord testé avec le code préalablement chargé. Puis, après avoir vérifié le bon fonctionnement du circuit, nous pouvons passer à la création de notre propre code assembleur.
 
 == Code assembleur personnalisé
-Le code assembleur est chargé directement sur la carte micro-SD après avoir été compilé par le programme : HEIRV32-ASM_1.2.5. Ce dernier retourne un fichier `.`bin, prêt à être copié sur la carte, à partir de notre fichier assembleur `.c`
+Le code assembleur (@fig_asmcode) est chargé directement sur la carte micro-SD après avoir été compilé par le programme : HEIRV32-ASM_1.2.5. Ce dernier retourne un fichier `.`bin, prêt à être copié sur la carte, à partir de notre fichier assembleur `.c`
 
-Nous avons décidé de faire un code permettant d'afficher une chenille avec les LEDs.
+Nous avons décidé de faire un code permettant d'afficher une chenille avec les LEDs. Les fonctions sont les suivantes:
+#pad(left: 1.5em)[
+- Une pression sur le bouton S1 démarre la chenille
+- Chaque pression subséquente sur S1 augmente progressivement la vitesse de la chenille
+- Chaque pression sur S2 résuit progressivement la vitesse de la chenille
+- Une pression sur S3 arrête la chenille
+]
+
+Quelques points importants de notre code:
+#pad(left: 1.5em)[
+- Une fonction d'écoute de la pression sur l'un des trois bouttons s'exécute à chaque boucle de décalage de la chenille; cette dernière utilise également un filtre anti rebond, empêchant un appui long d'incrémenter la vitesse plusieurs fois.
+- Le facteur de vitesse est déterminé par l'élévation à la puissance `v` d'une valeur fixe (`0xff = 2047`). Cette opération est effectuée au moyen d'un décalage de cette constante vers la gauche de `v` fois.
+]
 
 #let code_sample = read("../Programme Asm/codeFreq.s")
 #figure(code()[
   #raw(code_sample, lang: "riscv")
-], caption: "Code Assembleur Chenille ")
-
+], caption: "Code Assembleur Chenille ")<fig_asmcode>
 
 
 //== Fonctions supplémentaires
@@ -632,3 +648,12 @@ et d'exécuter un programme assembleur personnalisé depuis une carte SD, a ét�
 et déployé. Ce projet illustre concrètement le lien entre les concepts théoriques de l'architecture
 des ordinateurs et leur réalisation physique
 sur un circuit programmable.
+
+== Difficultés rencontrées
+Le passage entre l'architecture single-cycle et multi-cycle a initialement posé quelques problèmes de compréhension, notamment dans la découpe des cycles en fonction des différentes opérations, ainsi que pour le calcul de `PCnext`.
+L'établissement de la table de vérité de l'unité de contrôle s'est également avéré être une tâche complexe.
+
+== Etapes suivantes
+Si le temps l'avait permis, un développement du support de plus d'instructions assembleur aurait été intéressant, certaines instructions s'avérant très utile pour créer des programmes plus complexes (par exemple BNE, LUI, etc).
+
+Nous aurions pu développer d'autres programmes a exécuter sur notre processeur, tel qu'une implémentation très basique du jeu pong ;)
