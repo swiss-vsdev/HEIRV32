@@ -53,7 +53,7 @@ La partie matérielle, comprenant une carte de développement FPGA ainsi que
 plusieurs boutons et LEDs pour interagir avec le processeur, nous est fournie.
 
 La deuxième partie du projet consistera à créer un programme en assembleur qui sera exécuté
-sur notre processeur, et qui permttra de tester les différentes fonctionnalités que nous avons implémentées.
+sur notre processeur, et qui permettra de tester les différentes fonctionnalités que nous avons implémentées.
 
 = Spécification
 Le processeur que nous allons implémenter doit être capable d'exécuter les instructions de base suivantes:
@@ -107,7 +107,7 @@ La carte fille (@fig_daughterboard) héberge le FPGA et ses périphériques dire
 
 Trois LEDs indiquent l'état du système :
 
-- *LED bicolore (bleu/jaune)* : bleu signifie que la board est en train de reçevoir des données, jaune que des données sont transmises de la board à l'hôte
+- *LED bicolore (bleu/jaune)* : bleu signifie que la board est en train de recevoir des données, jaune que des données sont transmises de la board à l'hôte
 - *LED verte (LD2)* : programme en cours de chargement depuis la SD (séquence de démarrage active)
 - *LED rouge (LD3)* : FPGA sous tension et prêt à être configuré (programme non encore chargé)
 
@@ -155,13 +155,13 @@ des fonctionnalités supplémentaires au projet. Deux modules équipés de 8 LED
 
 = Outils
 == HDL Designer
-HDL Designer est un outil est un outil de conception de circuits numériques. Il s'agit de l'outil que nous avons utilisé tout au long de ce projet afin de concevoir notre implémentation du HEIRV32.
+HDL Designer est un outil de conception de circuits numériques. Il s'agit de l'outil que nous avons utilisé tout au long de ce projet afin de concevoir notre implémentation du HEIRV32.
 
 == ModelSim
-ModelSim est un simulateur qui permet de voir les détails du fonctionnement d'un circuit fait avec HDL Designer. Il nous permet de contrôler le bon fonctionnement de notre implémentation a l'aide de tests unitaires ainsi que de manière visuelle grâce à la représentation visuelle des signaux.
+ModelSim est un simulateur qui permet de voir les détails du fonctionnement d'un circuit fait avec HDL Designer. Il nous permet de contrôler le bon fonctionnement de notre implémentation à l'aide de tests unitaires ainsi que de manière visuelle grâce à la représentation visuelle des signaux.
 
-== Latice Diamond
-Latice Diamond nous permet de flasher la carte FPGA avec un circuit réalisé dans HDL Designer
+== Lattice Diamond
+Lattice Diamond nous permet de flasher la carte FPGA avec un circuit réalisé dans HDL Designer
 
 = Design
 
@@ -582,19 +582,19 @@ Une fois le fonctionnement validé en simulation, le circuit et le code sont tra
 Le circuit est d’abord testé avec le code préalablement chargé. Puis, après avoir vérifié le bon fonctionnement du circuit, nous pouvons passer à la création de notre propre code assembleur.
 
 == Code assembleur personnalisé
-Le code assembleur (@fig_asmcode) est chargé directement sur la carte micro-SD après avoir été compilé par le programme : HEIRV32-ASM_1.2.5. Ce dernier retourne un fichier `.`bin, prêt à être copié sur la carte, à partir de notre fichier assembleur `.c`
+Le code assembleur (@fig_asmcode) est chargé directement sur la carte micro-SD après avoir été compilé par le programme : HEIRV32-ASM_1.2.5. Ce dernier retourne un fichier `.bin, prêt à être copié sur la carte, à partir de notre fichier assembleur `.c`
 
 Nous avons décidé de faire un code permettant d'afficher une chenille avec les LEDs. Les fonctions sont les suivantes:
 #pad(left: 1.5em)[
 - Une pression sur le bouton S1 démarre la chenille
 - Chaque pression subséquente sur S1 augmente progressivement la vitesse de la chenille
-- Chaque pression sur S2 résuit progressivement la vitesse de la chenille
+- Chaque pression sur S2 réduit progressivement la vitesse de la chenille
 - Une pression sur S3 arrête la chenille
 ]
 
 Quelques points importants de notre code:
 #pad(left: 1.5em)[
-- Une fonction d'écoute de la pression sur l'un des trois bouttons s'exécute à chaque boucle de décalage de la chenille; cette dernière utilise également un filtre anti rebond, empêchant un appui long d'incrémenter la vitesse plusieurs fois.
+- Une fonction d'écoute de la pression sur l'un des trois boutons s'exécute à chaque boucle de décalage de la chenille; cette dernière utilise également un filtre anti rebond, empêchant un appui long d'incrémenter la vitesse plusieurs fois.
 - Le facteur de vitesse est déterminé par l'élévation à la puissance `v` d'une valeur fixe (`0xff = 2047`). Cette opération est effectuée au moyen d'un décalage de cette constante vers la gauche de `v` fois.
 ]
 
