@@ -292,6 +292,8 @@ et produit les signaux controlant l'état de tous les éléments du processeur.
   caption: [Vue top-level du Control Unit],
 )<fig_controlunit>
 
+#pagebreak()
+
 === AluDecoder <title_aludecoder>
 Le bloc  de la @fig_aludecoder est chargé de décoder les instructions découlant du signal *AluOp* et de générer 
 les signaux de contrôle de l'ALU. Il prend également en compte les signaux *func3* et *func7*, comme démontré dans le @fig_aludecodercode.
@@ -324,6 +326,8 @@ La *Main FSM* (@fig_fsm) est le cœur de l'unité de contrôle. Elle orchestre l
   image("../img/FSM.PNG", width: 16cm),
   caption: [Main FSM],
 )<fig_fsm>
+
+#pagebreak()
 
 == Signaux de contrôle
 
@@ -364,6 +368,8 @@ align(center)[
 )
 ], caption: [Opcodes des types d'instructions]
 )<fig_opcodes>
+
+#pagebreak()
 
 == Table de vérité de la FSM
 
@@ -520,6 +526,8 @@ align(center)[
 ], caption: [Table de décodage de l'ALU]
 )<fig_aludecodertable>
 
+#pagebreak()
+
 == Table de décodage immédiat (Instr. Decoder)
 L'opcode indique le format de l'immédiat via le signal `immSrc` au bloc d'extension immédiate, afin que ce dernier puisse le reconstituer correctement avant de l'étendre à 32 bits.
 #figure(
@@ -562,6 +570,7 @@ Pendant le décodage, l'ALU est utilisé pour pré-calculer l'adresse de saut `o
 (utile pour BEQ et JAL). La source A est donc `oldPC` (valeur du PC avant l'incrément),
 maintenu dans une bascule dédiée mise à jour à chaque Fetch.
 
+#pagebreak()
 
 = Simulation
 
@@ -591,6 +600,8 @@ Nous avons décidé de faire un code permettant d'afficher une chenille avec les
 - Chaque pression sur S2 réduit progressivement la vitesse de la chenille
 - Une pression sur S3 arrête la chenille
 ]
+
+#pagebreak()
 
 Quelques points importants de notre code:
 #pad(left: 1.5em)[
