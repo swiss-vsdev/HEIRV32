@@ -582,7 +582,7 @@ Une fois le fonctionnement validé en simulation, le circuit et le code sont tra
 Le circuit est d’abord testé avec le code préalablement chargé. Puis, après avoir vérifié le bon fonctionnement du circuit, nous pouvons passer à la création de notre propre code assembleur.
 
 == Code assembleur personnalisé
-Le code assembleur (@fig_asmcode) est chargé directement sur la carte micro-SD après avoir été compilé par le programme : HEIRV32-ASM_1.2.5. Ce dernier retourne un fichier `.bin, prêt à être copié sur la carte, à partir de notre fichier assembleur `.c`
+Le code assembleur (@fig_asmcode) est chargé directement sur la carte micro-SD après avoir été compilé par le programme : HEIRV32-ASM_1.2.5. Ce dernier retourne un fichier `.bin`, prêt à être copié sur la carte, à partir de notre fichier assembleur `.c`
 
 Nous avons décidé de faire un code permettant d'afficher une chenille avec les LEDs. Les fonctions sont les suivantes:
 #pad(left: 1.5em)[
